@@ -37,15 +37,15 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder, is
       {/* モバイル用トグルボタン */}
       <button
         onClick={onToggle}
-        className="lg:hidden fixed bottom-20 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg"
+        className="lg:hidden fixed bottom-32 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg"
       >
         {isOpen ? '✕' : '📋'}
       </button>
 
       {/* サイドバー */}
       <div className={`
-        fixed lg:relative right-0 top-0 h-full z-40
-        w-80 bg-gray-900 border-l border-gray-700 flex flex-col
+        fixed lg:relative right-0 top-0 bottom-0 z-40 lg:z-auto
+        w-80 flex-shrink-0 bg-gray-900 border-l border-gray-700 flex flex-col h-full
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
       `}>

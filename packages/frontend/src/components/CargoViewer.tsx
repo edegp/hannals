@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useCallback, useEffect, useRef } from 'react'
+import { Suspense, useState, useCallback, useEffect } from 'react'
 import { Canvas, useThree, ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, Line, Html, Edges } from '@react-three/drei'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
@@ -121,6 +121,8 @@ interface PlacedItemBoxProps {
 }
 
 function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProps) {
+  const [isHovered, setIsHovered] = useState(false)
+
   if (!visible) return null
 
   // mm → m変換（Three.jsの単位）
@@ -133,7 +135,7 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
   const posZ = item.posZ * scale
 
   // 色設定（より見やすい色）
-  const edgeColor = item.fragile ? '#ff0000' : isSelected ? '#00ff00' : '#0066ff'
+  const edgeColor = item.fragile ? '#ff0000' : isSelected ? '#00ff00' : isHovered ? '#00aaff' : '#0066ff'
 
   return (
     <group
@@ -141,7 +143,11 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
       rotation={[0, (item.rotation * Math.PI) / 180, 0]}
     >
       {/* ワイヤーフレーム表示（クリック可能） */}
-      <mesh onClick={(e) => { e.stopPropagation(); onClick() }}>
+      <mesh
+        onClick={(e) => { e.stopPropagation(); onClick() }}
+        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true) }}
+        onPointerOut={() => setIsHovered(false)}
+      >
         <boxGeometry args={[width, height, depth]} />
         <meshBasicMaterial
           wireframe={true}
@@ -149,6 +155,17 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
           transparent={false}
         />
       </mesh>
+
+      {/* ホバー時のツールチップ */}
+      {isHovered && !isSelected && (
+        <Html center distanceFactor={8}>
+          <div className="bg-gray-800/90 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none">
+            <div className="font-medium">{item.name || item.id}</div>
+            <div className="text-gray-300">{item.x_mm}×{item.y_mm}×{item.z_mm}mm</div>
+            {item.destination && <div className="text-yellow-400">{item.destination}</div>}
+          </div>
+        </Html>
+      )}
 
       {/* 選択されたアイテムのみラベル表示 */}
       {isSelected && (

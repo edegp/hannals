@@ -40,8 +40,8 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // 荷台のOBJ/MTL URLを生成
-  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : '/viewer/trunkVoxel_cleaned.obj'
-  const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : '/viewer/trunkVoxel_2512131543.mtl'
+  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : null
+  const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : undefined
 
   // 荷台選択時の処理
   const handleTruckSelect = useCallback((truck: Truck) => {
@@ -64,6 +64,26 @@ export default function Home() {
       })
     }
   }, [])
+
+  // 初回読み込み時に2tトラックを自動選択
+  useEffect(() => {
+    const loadDefaultTruck = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/trucks`)
+        if (response.ok) {
+          const trucks: Truck[] = await response.json()
+          // 2tトラックを探して選択
+          const defaultTruck = trucks.find(t => t.name.includes('2t')) || trucks[0]
+          if (defaultTruck) {
+            handleTruckSelect(defaultTruck)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load trucks:', error)
+      }
+    }
+    loadDefaultTruck()
+  }, [handleTruckSelect])
 
   // 荷台アップロード完了時の処理
   const handleTruckUpload = useCallback((truck: Truck) => {
@@ -201,96 +221,96 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900">
-      {/* ヘッダー */}
-      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-white">荷台3Dビューアー</h1>
-            <TruckSelector
-              selectedTruck={selectedTruck}
-              onSelect={handleTruckSelect}
-              onAddNew={() => setShowUploader(true)}
-            />
+    <div className="h-screen flex bg-gray-900 overflow-hidden">
+      {/* 左側: ヘッダー + ビューアー + スライダー */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* ヘッダー */}
+        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold text-white">荷台3Dビューアー</h1>
+              <TruckSelector
+                selectedTruck={selectedTruck}
+                onSelect={handleTruckSelect}
+                onAddNew={() => setShowUploader(true)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedTruck && cargoArea && (
+                <>
+                  <span className="text-gray-400 text-sm">
+                    積載領域: {((cargoArea.maxX - cargoArea.minX) / 1000).toFixed(1)}m x
+                    {((cargoArea.maxY - cargoArea.minY) / 1000).toFixed(1)}m x
+                    {((cargoArea.maxZ - cargoArea.minZ) / 1000).toFixed(1)}m
+                  </span>
+
+                  <button
+                    onClick={() => setIsSelectingEntrance(true)}
+                    className={`px-3 py-1.5 rounded text-sm ${
+                      isSelectingEntrance ? 'bg-yellow-500' : 'bg-purple-500'
+                    } text-white`}
+                  >
+                    {isSelectingEntrance ? '入り口を指定...' : `入り口: ${getDirectionLabel(entranceDirection)}`}
+                  </button>
+
+                  <button
+                    onClick={() => setShowDimensionExtractor(true)}
+                    className="px-3 py-1.5 bg-orange-500 text-white rounded text-sm hover:bg-orange-400"
+                  >
+                    画像から追加
+                  </button>
+
+                  <button
+                    onClick={() => setShowCsvImporter(true)}
+                    className="px-3 py-1.5 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-500"
+                  >
+                    CSV ({inputItems.length})
+                  </button>
+
+                  <button
+                    onClick={handlePlaceItems}
+                    disabled={isLoading || inputItems.length === 0}
+                    className="px-3 py-1.5 bg-green-500 text-white rounded text-sm disabled:opacity-50"
+                  >
+                    配置
+                  </button>
+
+                  <button
+                    onClick={() => handleLoadDemo('optimal')}
+                    disabled={isLoading}
+                    className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm disabled:opacity-50"
+                  >
+                    デモ（最適）
+                  </button>
+
+                  <button
+                    onClick={() => handleLoadDemo('random')}
+                    disabled={isLoading}
+                    className="px-3 py-1.5 bg-gray-500 text-white rounded text-sm disabled:opacity-50"
+                  >
+                    デモ（ランダム）
+                  </button>
+
+                  <button
+                    onClick={handleReset}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded text-sm"
+                  >
+                    リセット
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+          {isSelectingEntrance && (
+            <p className="text-sm text-yellow-400 mt-2">
+              荷台の入り口（積み込み口）の位置をクリックしてください
+            </p>
+          )}
+        </header>
 
-          <div className="flex items-center gap-4">
-            {selectedTruck && cargoArea && (
-              <>
-                <span className="text-gray-400 text-sm">
-                  積載領域: {((cargoArea.maxX - cargoArea.minX) / 1000).toFixed(1)}m x
-                  {((cargoArea.maxY - cargoArea.minY) / 1000).toFixed(1)}m x
-                  {((cargoArea.maxZ - cargoArea.minZ) / 1000).toFixed(1)}m
-                </span>
-
-                <button
-                  onClick={() => setIsSelectingEntrance(true)}
-                  className={`px-4 py-2 rounded ${
-                    isSelectingEntrance ? 'bg-yellow-500' : 'bg-purple-500'
-                  } text-white`}
-                >
-                  {isSelectingEntrance ? 'クリックで入り口を指定...' : `入り口: ${getDirectionLabel(entranceDirection)}`}
-                </button>
-
-                <button
-                  onClick={() => setShowDimensionExtractor(true)}
-                  className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-400"
-                >
-                  画像から荷物追加
-                </button>
-
-                <button
-                  onClick={() => setShowCsvImporter(true)}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500"
-                >
-                  CSVインポート ({inputItems.length})
-                </button>
-
-                <button
-                  onClick={handlePlaceItems}
-                  disabled={isLoading || inputItems.length === 0}
-                  className="px-4 py-2 bg-green-500 text-white rounded disabled:opacity-50"
-                >
-                  荷物を配置
-                </button>
-
-                <button
-                  onClick={() => handleLoadDemo('optimal')}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-                >
-                  デモ（最適）
-                </button>
-
-                <button
-                  onClick={() => handleLoadDemo('random')}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
-                >
-                  デモ（ランダム）
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2 bg-red-500 text-white rounded"
-                >
-                  リセット
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        {isSelectingEntrance && (
-          <p className="text-sm text-yellow-400 mt-2">
-            荷台の入り口（積み込み口）の位置をクリックしてください
-          </p>
-        )}
-      </header>
-
-      {/* メインコンテンツ */}
-      <div className="flex-1 flex overflow-hidden">
         {/* 3Dビューアー */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           <CargoViewer
             objUrl={objUrl}
             mtlUrl={mtlUrl}
@@ -308,29 +328,29 @@ export default function Home() {
           />
         </div>
 
-        {/* サイドバー */}
+        {/* スライダー */}
         {placedItems.length > 0 && (
-          <ItemsSidebar
-            items={placedItems}
-            selectedItemId={selectedItemId}
-            onItemSelect={setSelectedItemId}
-            maxOrder={maxOrder}
-            isOpen={sidebarOpen}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-          />
+          <div className="flex-shrink-0 p-4 bg-gray-800 border-t border-gray-700">
+            <OrderSlider
+              min={1}
+              max={maxItemOrder}
+              value={maxOrder}
+              onChange={setMaxOrder}
+            />
+          </div>
         )}
       </div>
 
-      {/* スライダー */}
+      {/* 右側: サイドバー */}
       {placedItems.length > 0 && (
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <OrderSlider
-            min={1}
-            max={maxItemOrder}
-            value={maxOrder}
-            onChange={setMaxOrder}
-          />
-        </div>
+        <ItemsSidebar
+          items={placedItems}
+          selectedItemId={selectedItemId}
+          onItemSelect={setSelectedItemId}
+          maxOrder={maxOrder}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
       )}
 
       {/* アップローダーモーダル */}
