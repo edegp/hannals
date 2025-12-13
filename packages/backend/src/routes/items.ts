@@ -1,9 +1,28 @@
 import { Hono } from 'hono'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { Prisma } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 
 export const itemsRoutes = new Hono()
+
+// まとめて積み込み済みにする（デモ用途）
+itemsRoutes.patch('/load', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  const itemIds = body?.itemIds
+
+  if (!Array.isArray(itemIds) || itemIds.length === 0 || itemIds.some((id) => typeof id !== 'string')) {
+    return c.json({ error: 'itemIds is required' }, 400)
+  }
+
+  try {
+    const result = await prisma.placedItem.updateMany({
+      where: { id: { in: itemIds } },
+      data: { isLoaded: true, loadedAt: new Date() },
+    })
+    return c.json({ updatedCount: result.count })
+  } catch (error) {
+    return c.json({ error: 'Failed to update items' }, 500)
+  }
+})
 
 // 積み込み済みにする
 itemsRoutes.patch('/:id/load', async (c) => {
@@ -19,7 +38,10 @@ itemsRoutes.patch('/:id/load', async (c) => {
     })
     return c.json(item)
   } catch (error) {
-    return c.json({ error: 'Item not found' }, 404)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return c.json({ error: 'Item not found' }, 404)
+    }
+    return c.json({ error: 'Failed to update item' }, 500)
   }
 })
 
@@ -37,7 +59,10 @@ itemsRoutes.patch('/:id/unload', async (c) => {
     })
     return c.json(item)
   } catch (error) {
-    return c.json({ error: 'Item not found' }, 404)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return c.json({ error: 'Item not found' }, 404)
+    }
+    return c.json({ error: 'Failed to update item' }, 500)
   }
 })
 
@@ -46,6 +71,17 @@ itemsRoutes.patch('/:id/deliver', async (c) => {
   const id = c.req.param('id')
 
   try {
+    const existing = await prisma.placedItem.findUnique({
+      where: { id },
+      select: { isLoaded: true },
+    })
+    if (!existing) {
+      return c.json({ error: 'Item not found' }, 404)
+    }
+    if (!existing.isLoaded) {
+      return c.json({ error: 'Item must be loaded before delivery' }, 400)
+    }
+
     const item = await prisma.placedItem.update({
       where: { id },
       data: {
@@ -55,7 +91,10 @@ itemsRoutes.patch('/:id/deliver', async (c) => {
     })
     return c.json(item)
   } catch (error) {
-    return c.json({ error: 'Item not found' }, 404)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return c.json({ error: 'Item not found' }, 404)
+    }
+    return c.json({ error: 'Failed to update item' }, 500)
   }
 })
 
@@ -73,6 +112,9 @@ itemsRoutes.patch('/:id/undeliver', async (c) => {
     })
     return c.json(item)
   } catch (error) {
-    return c.json({ error: 'Item not found' }, 404)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return c.json({ error: 'Item not found' }, 404)
+    }
+    return c.json({ error: 'Failed to update item' }, 500)
   }
 })

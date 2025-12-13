@@ -86,14 +86,18 @@ export default function DeliveryPage() {
           isLoaded: true,
           isDelivered: false,
         }))
-        setPlacedItems(itemsWithLoadedStatus)
 
         // まとめて積み込み済みとしてDBに更新
-        await fetch(`${API_URL}/api/items/load`, {
+        const updateResponse = await fetch(`${API_URL}/api/items/load`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ itemIds: result.items.map((item: PlacedItem) => item.id) }),
         })
+        if (!updateResponse.ok) {
+          throw new Error('Failed to batch-update loaded items')
+        }
+
+        setPlacedItems(itemsWithLoadedStatus)
 
         const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.order), 1)
         setMaxOrder(maxItemOrder)
@@ -107,35 +111,56 @@ export default function DeliveryPage() {
 
   // 配送済みにする
   const handleMarkDelivered = async (itemId: string) => {
+    let previousDeliveredAt: string | undefined
+    const nextDeliveredAt = new Date().toISOString()
+
     // ローカル状態を更新
-    setPlacedItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, isDelivered: true, deliveredAt: new Date().toISOString() } : item
-    ))
+    setPlacedItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      previousDeliveredAt = item.deliveredAt
+      return { ...item, isDelivered: true, deliveredAt: nextDeliveredAt }
+    }))
 
     // APIにも送信
     try {
-      await fetch(`${API_URL}/api/items/${itemId}/deliver`, {
+      const response = await fetch(`${API_URL}/api/items/${itemId}/deliver`, {
         method: 'PATCH',
       })
+      if (!response.ok) {
+        throw new Error('API request failed')
+      }
     } catch (error) {
-      // エラーは無視
+      setPlacedItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isDelivered: false, deliveredAt: previousDeliveredAt } : item
+      ))
+      window.alert('配送済みにできませんでした。ネットワークまたはサーバーエラーが発生しました。')
     }
   }
 
   // 配送取消
   const handleUndeliver = async (itemId: string) => {
+    let previousDeliveredAt: string | undefined
+
     // ローカル状態を更新
-    setPlacedItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, isDelivered: false, deliveredAt: undefined } : item
-    ))
+    setPlacedItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      previousDeliveredAt = item.deliveredAt
+      return { ...item, isDelivered: false, deliveredAt: undefined }
+    }))
 
     // APIにも送信
     try {
-      await fetch(`${API_URL}/api/items/${itemId}/undeliver`, {
+      const response = await fetch(`${API_URL}/api/items/${itemId}/undeliver`, {
         method: 'PATCH',
       })
+      if (!response.ok) {
+        throw new Error('API request failed')
+      }
     } catch (error) {
-      // エラーは無視
+      setPlacedItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isDelivered: true, deliveredAt: previousDeliveredAt } : item
+      ))
+      window.alert('配送取消にできませんでした。ネットワークまたはサーバーエラーが発生しました。')
     }
   }
 

@@ -35,7 +35,8 @@ function ItemPreview({ item }: { item: PlacedItem }) {
 export function ItemsSidebar({ items, completedItems = [], selectedItemId, onItemSelect, maxOrder, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
   const allItems = [...items, ...completedItems]
   const selectedItem = allItems.find(item => item.id === selectedItemId)
-  const visibleItems = items.filter(item => (item.loadOrder ?? item.order) <= maxOrder)
+  const getItemOrder = (item: PlacedItem) => (mode === 'delivery' ? item.order : (item.loadOrder ?? item.order))
+  const visibleItems = items.filter(item => getItemOrder(item) <= maxOrder)
 
   return (
     <>
@@ -140,7 +141,7 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
               className={`w-full p-2 rounded-lg text-left transition-colors ${
                 item.id === selectedItemId
                   ? 'bg-blue-600 text-white'
-                  : (item.loadOrder ?? item.order) <= maxOrder
+                  : getItemOrder(item) <= maxOrder
                   ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   : 'bg-gray-800/50 text-gray-500'
               }`}
@@ -148,7 +149,7 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
               <div className="flex items-center justify-between">
                 <span className="font-medium truncate">{item.name || item.id}</span>
                 <span className="text-xs ml-2">
-                  #{mode === 'delivery' ? item.order : (item.loadOrder ?? item.order)}
+                  #{getItemOrder(item)}
                 </span>
               </div>
               {item.destination && (

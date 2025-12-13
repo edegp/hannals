@@ -7,7 +7,7 @@ import { OrderSlider } from '@/components/OrderSlider'
 import { ItemsSidebar } from '@/components/ItemsSidebar'
 import { TruckSelector } from '@/components/TruckSelector'
 import { CsvImporter } from '@/components/CsvImporter'
-import { PlacedItem, CargoArea, ClickPoint, Item, Truck } from '@/types'
+import { PlacedItem, CargoArea, Item, Truck } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -130,35 +130,58 @@ export default function LoadingPage() {
 
   // 積み込み済みにする
   const handleMarkLoaded = async (itemId: string) => {
+    let previousLoadedAt: string | undefined
+    const nextLoadedAt = new Date().toISOString()
+
     // ローカル状態を更新（isLoaded=trueで3Dビューに表示、サイドバーから除外）
-    setPlacedItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, isLoaded: true, loadedAt: new Date().toISOString() } : item
-    ))
+    setPlacedItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      previousLoadedAt = item.loadedAt
+      return { ...item, isLoaded: true, loadedAt: nextLoadedAt }
+    }))
 
     // APIにも送信
     try {
-      await fetch(`${API_URL}/api/items/${itemId}/load`, {
+      const response = await fetch(`${API_URL}/api/items/${itemId}/load`, {
         method: 'PATCH',
       })
+      if (!response.ok) {
+        throw new Error('API response not ok')
+      }
     } catch (error) {
-      // エラーは無視（ローカル状態は更新済み）
+      // エラー時はローカル状態を元に戻し、ユーザーに通知
+      setPlacedItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isLoaded: false, loadedAt: previousLoadedAt } : item
+      ))
+      window.alert('サーバーへの反映に失敗しました。もう一度お試しください。')
     }
   }
 
   // 積み込み取消
   const handleUnload = async (itemId: string) => {
+    let previousLoadedAt: string | undefined
+
     // ローカル状態を更新
-    setPlacedItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, isLoaded: false, loadedAt: undefined } : item
-    ))
+    setPlacedItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      previousLoadedAt = item.loadedAt
+      return { ...item, isLoaded: false, loadedAt: undefined }
+    }))
 
     // APIにも送信
     try {
-      await fetch(`${API_URL}/api/items/${itemId}/unload`, {
+      const response = await fetch(`${API_URL}/api/items/${itemId}/unload`, {
         method: 'PATCH',
       })
+      if (!response.ok) {
+        throw new Error('API response not ok')
+      }
     } catch (error) {
-      // エラーは無視
+      // エラー時はローカル状態を元に戻し、ユーザーに通知
+      setPlacedItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, isLoaded: true, loadedAt: previousLoadedAt } : item
+      ))
+      window.alert('サーバーへの反映に失敗しました。もう一度お試しください。')
     }
   }
 

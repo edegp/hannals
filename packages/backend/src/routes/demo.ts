@@ -1,9 +1,7 @@
 import { Hono } from 'hono'
 import { readFileSync, existsSync } from 'fs'
 import path from 'path'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 export const demoRoutes = new Hono()
 
 const DEMO_DIR = path.join(process.cwd(), '..', '..', 'docs', 'demo')
@@ -131,32 +129,10 @@ demoRoutes.post('/:type/load', async (c) => {
     },
   })
 
-  // フロントエンド向けにフォーマット
-  const formattedItems = placement.items.map((item) => ({
-    id: item.id,
-    itemId: item.itemId,
-    name: item.name,
-    destination: item.destination,
-    x_mm: item.x_mm,
-    y_mm: item.y_mm,
-    z_mm: item.z_mm,
-    order: item.order,
-    loadOrder: item.loadOrder,
-    weight_kg: item.weight_kg,
-    fragile: item.fragile,
-    rot_xy: item.rot_xy,
-    posX: item.posX,
-    posY: item.posY,
-    posZ: item.posZ,
-    rotation: item.rotation,
-    isLoaded: item.isLoaded,
-    isDelivered: item.isDelivered,
-  }))
-
   return c.json({
     placementId: placement.id,
-    items: formattedItems,
-    count: formattedItems.length
+    items: placement.items,
+    count: placement.items.length
   })
 })
 
