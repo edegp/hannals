@@ -8,16 +8,6 @@ import { PlacedItem, CargoArea, Item, Truck } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-// デモ用の固定商品データ（仕様書: UIのみCSV、内部データは定数でハードコード）
-const DEMO_ITEMS: Item[] = [
-  { id: 'A001', x_mm: 600, y_mm: 400, z_mm: 300, order: 3, weight_kg: 12.5, fragile: false, rot_xy: true },
-  { id: 'B010', x_mm: 205, y_mm: 195, z_mm: 180, order: 1, weight_kg: 5.2, fragile: true, rot_xy: false },
-  { id: 'C003', x_mm: 400, y_mm: 300, z_mm: 250, order: 2, weight_kg: 8.0, fragile: false, rot_xy: true },
-  { id: 'D005', x_mm: 350, y_mm: 280, z_mm: 200, order: 4, weight_kg: 6.5, fragile: false, rot_xy: true },
-  { id: 'E007', x_mm: 500, y_mm: 350, z_mm: 280, order: 1, weight_kg: 10.0, fragile: false, rot_xy: true },
-  { id: 'F012', x_mm: 300, y_mm: 250, z_mm: 200, order: 2, weight_kg: 7.5, fragile: true, rot_xy: false },
-]
-
 type GenerationStatus = 'idle' | 'generating' | 'completed'
 
 export default function LoadingPlanPage() {
@@ -28,7 +18,7 @@ export default function LoadingPlanPage() {
   const [maxOrder, setMaxOrder] = useState(10)
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>('idle')
   const [showCsvImporter, setShowCsvImporter] = useState(false)
-  const [items, setItems] = useState<Item[]>(DEMO_ITEMS)
+  const [items, setItems] = useState<Item[]>([])
 
   // 荷台のOBJ/MTL URLを生成
   const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : ''
@@ -61,12 +51,11 @@ export default function LoadingPlanPage() {
     setCargoArea(area)
   }, [])
 
-  // CSVからインポートされた荷物を設定（UIのみ、内部データは固定）
+  // CSVからインポートされた荷物を設定
   const handleItemsImported = useCallback((importedItems: Item[]) => {
-    // 仕様書: CSVはUIのみ、内部データは定数でハードコード
-    // ここでは表示上はインポートしたように見せるが、実際の計画生成では固定データを使用
+    setItems(importedItems)
     setShowCsvImporter(false)
-    console.log('CSV imported (UI only):', importedItems.length, 'items')
+    console.log('CSV imported:', importedItems.length, 'items')
   }, [])
 
   // 積み込み計画を生成
