@@ -67,40 +67,66 @@ export default function DeliveryPage() {
     loadDefaultTruck()
   }, [handleTruckSelect])
 
-  // デモ配置を読み込む（データベースに保存、配送画面では全て積み込み済みとして扱う）
+  // デモ配置を読み込む
+  // - まずDB上の「最新の配置」を取得し、積み込み/配送ステータスと連動させる
+  // - まだ配置が無い場合のみデモを生成する（配送画面のデモは全て積み込み済みとして扱う）
   const handleLoadDemo = async () => {
     if (!selectedTruck) return
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/demo/optimal/load`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ truckId: selectedTruck.id }),
-      })
-      if (response.ok) {
-        const result = await response.json()
-        // デモデータは全て積み込み済みとしてマーク
-        const itemsWithLoadedStatus = result.items.map((item: PlacedItem) => ({
-          ...item,
-          isLoaded: true,
-          isDelivered: false,
-        }))
+      let loadedFromDb = false
 
-        // まとめて積み込み済みとしてDBに更新
-        const updateResponse = await fetch(`${API_URL}/api/items/load`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ itemIds: result.items.map((item: PlacedItem) => item.id) }),
-        })
-        if (!updateResponse.ok) {
-          throw new Error('Failed to batch-update loaded items')
+      // まず最新配置を参照（積み込み画面で更新した状態とリンクさせる）
+      try {
+        const placementsRes = await fetch(`${API_URL}/api/placements`)
+        if (placementsRes.ok) {
+          const placements: Array<{ id: string; truckId: string }> = await placementsRes.json()
+          const latest = placements.find((p) => p.truckId === selectedTruck.id)
+          if (latest) {
+            const detailRes = await fetch(`${API_URL}/api/placements/${latest.id}`)
+            if (detailRes.ok) {
+              const placement = await detailRes.json()
+              const items: PlacedItem[] = placement?.items ?? []
+              setPlacedItems(items)
+              const maxItemOrder = Math.max(...items.map((i) => i.order), 1)
+              setMaxOrder(maxItemOrder)
+              loadedFromDb = true
+            }
+          }
         }
+      } catch {
+        // ignore
+      }
 
-        setPlacedItems(itemsWithLoadedStatus)
+      // 既存配置がなければデモを作成
+      if (!loadedFromDb) {
+        const response = await fetch(`${API_URL}/api/demo/optimal/load`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ truckId: selectedTruck.id }),
+        })
+        if (response.ok) {
+          const result = await response.json()
+          const itemsWithLoadedStatus = result.items.map((item: PlacedItem) => ({
+            ...item,
+            isLoaded: true,
+            isDelivered: false,
+          }))
 
-        const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.order), 1)
-        setMaxOrder(maxItemOrder)
+          const updateResponse = await fetch(`${API_URL}/api/items/load`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemIds: result.items.map((item: PlacedItem) => item.id) }),
+          })
+          if (!updateResponse.ok) {
+            throw new Error('Failed to batch-update loaded items')
+          }
+
+          setPlacedItems(itemsWithLoadedStatus)
+          const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.order), 1)
+          setMaxOrder(maxItemOrder)
+        }
       }
     } catch (error) {
       console.error('Failed to load demo:', error)

@@ -65,6 +65,9 @@ model PlacedItem {
   loadedAt    DateTime?                   // 積み込み日時
   isDelivered Boolean   @default(false)  // 配送済み
   deliveredAt DateTime?                   // 配送日時
+  // 3Dモデルデータ（外部APIから取得）
+  objData     String?   @db.Text         // OBJファイルデータ
+  mtlData     String?   @db.Text         // MTLファイルデータ
   // リレーション
   placement   Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
   placementId String

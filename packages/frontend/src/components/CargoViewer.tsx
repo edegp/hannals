@@ -120,6 +120,81 @@ interface PlacedItemBoxProps {
   visible: boolean
 }
 
+// アイテムの3Dモデルを表示するコンポーネント
+function ItemModel({ objData, mtlData, scale: modelScale }: { objData: string, mtlData?: string | null, scale: number }) {
+  const [obj, setObj] = useState<THREE.Group | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadModel = async () => {
+      try {
+        const objLoader = new OBJLoader()
+
+        if (mtlData) {
+          try {
+            const mtlLoader = new MTLLoader()
+            // MTLデータをBlobとして読み込み
+            const mtlBlob = new Blob([mtlData], { type: 'text/plain' })
+            const mtlUrl = URL.createObjectURL(mtlBlob)
+            const materials = await mtlLoader.loadAsync(mtlUrl)
+            materials.preload()
+            objLoader.setMaterials(materials)
+            URL.revokeObjectURL(mtlUrl)
+          } catch (e) {
+            console.warn('MTL parse failed:', e)
+          }
+        }
+
+        // OBJデータをBlobとして読み込み
+        const objBlob = new Blob([objData], { type: 'text/plain' })
+        const objUrl = URL.createObjectURL(objBlob)
+        const loadedObj = await objLoader.loadAsync(objUrl)
+        URL.revokeObjectURL(objUrl)
+
+        // マテリアルを設定
+        loadedObj.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (!child.material || (child.material as THREE.Material).type === 'MeshBasicMaterial') {
+              child.material = new THREE.MeshStandardMaterial({
+                color: 0x8888ff,
+                roughness: 0.5,
+                metalness: 0.1,
+                side: THREE.DoubleSide,
+              })
+            }
+          }
+        })
+
+        // 建築系座標変換（Z-up → Y-up）
+        loadedObj.rotation.x = -Math.PI / 2
+
+        // スケール調整（m → Three.js単位）
+        loadedObj.scale.set(modelScale, modelScale, modelScale)
+
+        // バウンディングボックスを取得して中心に配置
+        loadedObj.updateMatrixWorld(true)
+        const box = new THREE.Box3().setFromObject(loadedObj)
+        const center = box.getCenter(new THREE.Vector3())
+        loadedObj.position.sub(center)
+
+        if (!cancelled) {
+          setObj(loadedObj)
+        }
+      } catch (error) {
+        console.error('Failed to load item model:', error)
+      }
+    }
+
+    loadModel()
+    return () => { cancelled = true }
+  }, [objData, mtlData, modelScale])
+
+  if (!obj) return null
+
+  return <primitive object={obj} />
+}
+
 function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProps) {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -139,22 +214,45 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
 
   return (
     <group
-      position={[posX + width/2, posZ + height/2, posY + depth/2]}
+      position={[posX + width / 2, posZ + height / 2, posY + depth / 2]}
       rotation={[0, (item.rotation * Math.PI) / 180, 0]}
     >
-      {/* ワイヤーフレーム表示（クリック可能） */}
-      <mesh
-        onClick={(e) => { e.stopPropagation(); onClick() }}
-        onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true) }}
-        onPointerOut={() => setIsHovered(false)}
-      >
-        <boxGeometry args={[width, height, depth]} />
-        <meshBasicMaterial
-          wireframe={true}
-          color={edgeColor}
-          transparent={false}
-        />
-      </mesh>
+      {/* objDataがある場合は3Dモデルを表示、ない場合はワイヤーフレーム */}
+      {item.objData ? (
+        <group
+          onClick={(e) => { e.stopPropagation(); onClick() }}
+          onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true) }}
+          onPointerOut={() => setIsHovered(false)}
+        >
+          <ItemModel objData={item.objData} mtlData={item.mtlData} scale={scale} />
+          {/* 選択時のアウトライン */}
+          {(isSelected || isHovered) && (
+            <mesh>
+              <boxGeometry args={[width * 1.02, height * 1.02, depth * 1.02]} />
+              <meshBasicMaterial
+                wireframe={true}
+                color={edgeColor}
+                transparent={true}
+                opacity={0.8}
+              />
+            </mesh>
+          )}
+        </group>
+      ) : (
+        /* ワイヤーフレーム表示（クリック可能） */
+        <mesh
+          onClick={(e) => { e.stopPropagation(); onClick() }}
+          onPointerOver={(e) => { e.stopPropagation(); setIsHovered(true) }}
+          onPointerOut={() => setIsHovered(false)}
+        >
+          <boxGeometry args={[width, height, depth]} />
+          <meshBasicMaterial
+            wireframe={true}
+            color={edgeColor}
+            transparent={false}
+          />
+        </mesh>
+      )}
 
       {/* ホバー時のツールチップ */}
       {isHovered && !isSelected && (
@@ -195,7 +293,7 @@ function CargoAreaBox({ area, points }: CargoAreaBoxProps) {
     const posZ = area.minZ * scale
 
     return (
-      <mesh position={[posX + width/2, posZ + height/2, posY + depth/2]} raycast={() => null}>
+      <mesh position={[posX + width / 2, posZ + height / 2, posY + depth / 2]} raycast={() => null}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color="#22c55e" transparent opacity={0.2} wireframe />
       </mesh>
@@ -216,7 +314,7 @@ function CargoAreaBox({ area, points }: CargoAreaBoxProps) {
     const height = maxZ - minZ
 
     return (
-      <mesh position={[minX + width/2, minZ + height/2, minY + depth/2]} raycast={() => null}>
+      <mesh position={[minX + width / 2, minZ + height / 2, minY + depth / 2]} raycast={() => null}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color="#fbbf24" transparent opacity={0.3} />
       </mesh>

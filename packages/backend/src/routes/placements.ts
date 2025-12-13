@@ -39,6 +39,8 @@ interface PlacedItemResult {
   posY: number
   posZ: number
   rotation: number
+  objData?: string
+  mtlData?: string | null
 }
 
 interface ExternalApiResponse {
@@ -154,6 +156,8 @@ placementsRoutes.post('/', async (c) => {
           posY: item.posY,
           posZ: item.posZ,
           rotation: item.rotation,
+          objData: item.objData,
+          mtlData: item.mtlData,
         })),
       },
     },
@@ -341,6 +345,8 @@ placementsRoutes.post('/mock/calculate', async (c) => {
           posY: item.posY,
           posZ: item.posZ,
           rotation: item.rotation,
+          objData: item.objData,
+          mtlData: item.mtlData,
         })),
       },
     },
