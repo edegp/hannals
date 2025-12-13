@@ -387,3 +387,23 @@ hannals/
 | VISION_MODEL     | 使用するVisionモデル    | preview/Qwen3-VL-30B-A3B-Instruct             |
 | EXTERNAL_API_URL | 外部配置計算API URL     | http://localhost:5000                         |
 
+---
+
+## サンプルデータ
+
+テスト用のサンプルデータは以下のGoogle Driveで公開しています：
+
+**[サンプルデータ (Google Drive)](https://drive.google.com/drive/folders/1VkcSSj450gkqPLiluSdvMkM-5IVAE6Qq?usp=drive_link)**
+
+### 含まれるデータ
+
+- 荷台の3Dモデル（OBJファイル）
+- 荷物の写真サンプル
+- テスト用寸法データ
+
+### 使用方法
+
+1. Google Driveからファイルをダウンロード
+2. 荷台OBJファイル → 「荷台を登録」でアップロード
+3. 荷物写真 → 「画像から荷物追加」で寸法抽出
+

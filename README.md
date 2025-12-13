@@ -209,6 +209,16 @@ hannals/
 
 ※ CargoViewerで自動変換（X軸で-90度回転）
 
+## サンプルデータ
+
+テスト用のサンプルデータを公開しています：
+
+**[サンプルデータ (Google Drive)](https://drive.google.com/drive/folders/1VkcSSj450gkqPLiluSdvMkM-5IVAE6Qq?usp=drive_link)**
+
+- 荷台の3Dモデル（OBJファイル）
+- 荷物の写真サンプル
+- テスト用寸法データ
+
 ## ライセンス
 
 MIT
