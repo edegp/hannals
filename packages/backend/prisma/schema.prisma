@@ -48,7 +48,7 @@ model PlacedItem {
   y_mm        Int
   z_mm        Int
   order       Int       // 配送順（1=最初に配送）
-  loadOrder   Int?      // 積み込み順（1=最後に積む）
+  loadOrder   Int?      // 積み込み順（1=最後に積む、配送順(order)と逆順。1が最初に配送される荷物を最後に積むことを意味します。）
   weight_kg   Float
   fragile     Boolean   @default(false)
   rot_xy      Boolean   @default(false)
