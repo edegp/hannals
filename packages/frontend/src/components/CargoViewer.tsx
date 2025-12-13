@@ -452,13 +452,12 @@ interface CargoViewerProps {
   placedItems: PlacedItem[]
   selectedItemId: string | null
   onItemSelect: (id: string | null) => void
-  maxOrder: number
   cargoArea: CargoArea | null
-  entrancePoint: ClickPoint | null
+  entrancePoint?: ClickPoint | null
   entranceDirection: string | null
   isSelectingEntrance: boolean
   onEntranceClick: (point: ClickPoint) => void
-  onCargoAreaDetected: (area: CargoArea) => void
+  onCargoAreaDetected?: (area: CargoArea) => void
   className?: string
 }
 
@@ -468,13 +467,10 @@ export function CargoViewer({
   placedItems,
   selectedItemId,
   onItemSelect,
-  maxOrder,
   cargoArea,
-  entrancePoint,
   entranceDirection,
   isSelectingEntrance,
   onEntranceClick,
-  onCargoAreaDetected,
   className = ''
 }: CargoViewerProps) {
   return (
@@ -501,7 +497,7 @@ export function CargoViewer({
               item={item}
               isSelected={item.id === selectedItemId}
               onClick={() => onItemSelect(item.id)}
-              visible={(item.loadOrder ?? item.order) <= maxOrder}
+              visible={true}
             />
           ))}
         </Suspense>

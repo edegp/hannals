@@ -4,13 +4,18 @@ import { useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { PlacedItem, ViewerMode } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ArrowLeft, Check, Undo2, Package, MapPin, ListOrdered, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ItemsSidebarProps {
   items: PlacedItem[]
   completedItems?: PlacedItem[]
   selectedItemId: string | null
   onItemSelect: (id: string | null) => void
-  maxOrder: number
   isOpen?: boolean
   onToggle?: () => void
   mode?: ViewerMode
@@ -23,7 +28,7 @@ function ItemPreview({ item }: { item: PlacedItem }) {
   const width = item.x_mm * scale
   const depth = item.y_mm * scale
   const height = item.z_mm * scale
-  const color = item.fragile ? '#ff6b6b' : '#45b7d1'
+  const color = item.fragile ? '#ef4444' : '#3b82f6'
 
   return (
     <mesh>
@@ -33,11 +38,10 @@ function ItemPreview({ item }: { item: PlacedItem }) {
   )
 }
 
-export function ItemsSidebar({ items, completedItems = [], selectedItemId, onItemSelect, maxOrder, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
+export function ItemsSidebar({ items, completedItems = [], selectedItemId, onItemSelect, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
   const allItems = [...items, ...completedItems]
   const selectedItem = allItems.find(item => item.id === selectedItemId)
   const getItemOrder = (item: PlacedItem) => (mode === 'delivery' ? item.order : (item.loadOrder ?? item.order))
-  const visibleItems = items.filter(item => getItemOrder(item) <= maxOrder)
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const pendingHeaderRef = useRef<HTMLHeadingElement | null>(null)
@@ -81,77 +85,75 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
     return latest?.id ?? null
   }
 
-  return (
-    <>
-      {/* モバイル用トグルボタン */}
-      <button
-        onClick={onToggle}
-        className="lg:hidden fixed bottom-32 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg"
-      >
-        {isOpen ? '✕' : '📋'}
-      </button>
-
-      {/* サイドバー */}
-      <div className={`
-        fixed lg:relative right-0 top-0 bottom-0 z-40 lg:z-auto
-        w-80 flex-shrink-0 bg-gray-900 border-l border-gray-700 flex flex-col h-full
-        transform transition-transform duration-300
-        ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-white">アイテム情報</h2>
-            {mode && onStatusUndo && completedItems.length > 0 && (
-              <button
-                onClick={() => {
-                  const targetId = resolveUndoTargetId()
-                  if (targetId) onStatusUndo(targetId)
-                }}
-                className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
-              >
-                ↩︎ {undoLabel}
-              </button>
-            )}
+  const sidebarContent = (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">アイテム情報</h2>
           </div>
-          <p className="text-sm text-gray-400">
-            表示中: {visibleItems.length} / {items.length}
-          </p>
-
-          {(items.length > 0 || completedItems.length > 0) && (
-            <div className="mt-3 flex gap-2">
-              {items.length > 0 && (
-                <button
-                  onClick={scrollToPending}
-                  className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
-                >
-                  {mode === 'loading' ? '積み込み待ちへ' : mode === 'delivery' ? '配送待ちへ' : '一覧へ'}
-                </button>
-              )}
-              {completedItems.length > 0 && (
-                <button
-                  onClick={scrollToCompleted}
-                  className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
-                >
-                  {mode === 'loading' ? '積み込み済みへ' : mode === 'delivery' ? '配送済みへ' : '完了へ'}
-                </button>
-              )}
-            </div>
+          {mode && onStatusUndo && completedItems.length > 0 && (
+            <Button
+              onClick={() => {
+                const targetId = resolveUndoTargetId()
+                if (targetId) onStatusUndo(targetId)
+              }}
+              variant="ghost"
+              size="sm"
+            >
+              <Undo2 className="h-4 w-4 mr-1" />
+              {undoLabel}
+            </Button>
           )}
         </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          待機中: {items.length} / 完了: {completedItems.length}
+        </p>
 
-        {selectedItem ? (
-          <div className="p-4 border-b border-gray-700">
-            {/* 戻るボタン */}
-            <button
-              onClick={() => onItemSelect(null)}
-              className="flex items-center text-blue-400 hover:text-blue-300 mb-3 text-sm"
-            >
-              ← 一覧に戻る
-            </button>
-            <h3 className="font-medium text-white mb-1">{selectedItem.name || selectedItem.id}</h3>
-            <p className="text-xs text-gray-500 mb-3">{selectedItem.id}</p>
+        {(items.length > 0 || completedItems.length > 0) && (
+          <div className="mt-3 flex gap-2">
+            {items.length > 0 && (
+              <Button
+                onClick={scrollToPending}
+                variant="outline"
+                size="sm"
+              >
+                {mode === 'loading' ? '積み込み待ち' : mode === 'delivery' ? '配送待ち' : '一覧'}
+              </Button>
+            )}
+            {completedItems.length > 0 && (
+              <Button
+                onClick={scrollToCompleted}
+                variant="outline"
+                size="sm"
+              >
+                {mode === 'loading' ? '積み込み済み' : mode === 'delivery' ? '配送済み' : '完了'}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
-            <div className="h-32 bg-gray-800 rounded-lg mb-3">
+      {selectedItem ? (
+        <div className="p-4 border-b border-border">
+          <Button
+            onClick={() => onItemSelect(null)}
+            variant="ghost"
+            size="sm"
+            className="mb-3"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            一覧に戻る
+          </Button>
+
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-medium">{selectedItem.name || selectedItem.id}</h3>
+              <p className="text-xs text-muted-foreground truncate">{selectedItem.id}</p>
+            </div>
+
+            <div className="h-32 bg-muted rounded-lg overflow-hidden">
               <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
                 <ambientLight intensity={0.7} />
                 <directionalLight position={[5, 5, 5]} />
@@ -162,139 +164,193 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
 
             <div className="space-y-2 text-sm">
               {selectedItem.destination && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">配送先</span>
-                  <span className="text-yellow-400">{selectedItem.destination}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    配送先
+                  </span>
+                  <Badge variant="secondary">{selectedItem.destination}</Badge>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-400">サイズ (mm)</span>
-                <span className="text-white">
+                <span className="text-muted-foreground">サイズ (mm)</span>
+                <span className="font-mono text-xs">
                   {selectedItem.x_mm} × {selectedItem.y_mm} × {selectedItem.z_mm}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">重量</span>
-                <span className="text-white">{selectedItem.weight_kg} kg</span>
+                <span className="text-muted-foreground">重量</span>
+                <span>{selectedItem.weight_kg} kg</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">配送順</span>
-                <span className="text-white">#{selectedItem.order}</span>
+                <span className="text-muted-foreground">配送順</span>
+                <span>#{selectedItem.order}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">積込順</span>
-                <span className="text-white">#{selectedItem.loadOrder ?? '-'}</span>
+                <span className="text-muted-foreground">積込順</span>
+                <span>#{selectedItem.loadOrder ?? '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">壊れ物</span>
-                <span className={selectedItem.fragile ? 'text-red-400' : 'text-green-400'}>
+                <span className="text-muted-foreground">壊れ物</span>
+                <Badge variant={selectedItem.fragile ? 'destructive' : 'outline'}>
                   {selectedItem.fragile ? 'はい' : 'いいえ'}
-                </span>
+                </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">位置 (mm)</span>
-                <span className="text-white text-xs">
+                <span className="text-muted-foreground">位置 (mm)</span>
+                <span className="font-mono text-xs">
                   ({selectedItem.posX.toFixed(0)}, {selectedItem.posY.toFixed(0)}, {selectedItem.posZ.toFixed(0)})
                 </span>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="p-4 text-center text-gray-500">
-            アイテムを選択してください
-          </div>
-        )}
+        </div>
+      ) : (
+        <div className="p-4 text-center text-muted-foreground">
+          アイテムを選択してください
+        </div>
+      )}
 
-        <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-2">
-          {/* 未完了アイテム */}
-          <h3 ref={pendingHeaderRef} className="text-sm font-medium text-gray-400 px-2 mb-2">
+      <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto">
+        <div className="p-2">
+          {/* Pending Items */}
+          <h3 ref={pendingHeaderRef} className="text-sm font-medium text-muted-foreground px-2 mb-2 flex items-center gap-2">
+            <ListOrdered className="h-4 w-4" />
             {mode === 'loading' ? '積み込み待ち' : mode === 'delivery' ? '配送待ち' : 'アイテム一覧'}
-            {items.length > 0 && <span className="ml-1">({items.length})</span>}
+            {items.length > 0 && <span className="text-xs">({items.length})</span>}
           </h3>
+
           {items.map((item) => (
-            <div key={item.id} className="mb-1">
-              <button
-                onClick={() => onItemSelect(item.id)}
-                className={`w-full p-2 rounded-lg text-left transition-colors ${item.id === selectedItemId
-                    ? 'bg-blue-600 text-white'
-                    : getItemOrder(item) <= maxOrder
-                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      : 'bg-gray-800/50 text-gray-500'
-                  }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium truncate">{item.name || item.id}</span>
-                  <span className="text-xs ml-2">
-                    #{getItemOrder(item)}
-                  </span>
-                </div>
-                {item.destination && (
-                  <div className="text-xs text-yellow-400 truncate">{item.destination}</div>
+            <div key={item.id} className="mb-2">
+              <Card
+                className={cn(
+                  'cursor-pointer transition-colors hover:bg-accent',
+                  item.id === selectedItemId && 'ring-2 ring-primary'
                 )}
-                <div className="text-xs mt-1 opacity-70">
-                  {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg {item.fragile && '🔴'}
-                </div>
-              </button>
+                onClick={() => onItemSelect(item.id)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium truncate">{item.name || item.id}</span>
+                    <Badge variant="outline" className="ml-2">
+                      #{getItemOrder(item)}
+                    </Badge>
+                  </div>
+                  {item.destination && (
+                    <div className="text-xs text-amber-500 truncate mt-1 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {item.destination}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                    <span>{item.x_mm}×{item.y_mm}×{item.z_mm}mm</span>
+                    <span>{item.weight_kg}kg</span>
+                    {item.fragile && <Badge variant="destructive" className="text-[10px] px-1 py-0">壊れ物</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+
               {mode && onStatusChange && (
-                <button
+                <Button
                   onClick={(e) => {
                     e.stopPropagation()
                     onStatusChange(item.id)
                   }}
-                  className={`w-full mt-1 py-1.5 rounded text-sm font-medium transition-colors ${mode === 'loading'
-                      ? 'bg-green-600 hover:bg-green-500 text-white'
-                      : 'bg-orange-600 hover:bg-orange-500 text-white'
-                    }`}
+                  className="w-full mt-1"
+                  variant={mode === 'loading' ? 'default' : 'secondary'}
+                  size="sm"
                 >
+                  <Check className="h-4 w-4 mr-1" />
                   {mode === 'loading' ? '積み込み完了' : '配送完了'}
-                </button>
+                </Button>
               )}
             </div>
           ))}
 
-          {/* 完了済みアイテム */}
+          {/* Completed Items */}
           {completedItems.length > 0 && (
             <>
-              <h3 ref={completedHeaderRef} className="text-sm font-medium text-gray-400 px-2 mb-2 mt-4 border-t border-gray-700 pt-4">
+              <Separator className="my-4" />
+              <h3 ref={completedHeaderRef} className="text-sm font-medium text-muted-foreground px-2 mb-2 flex items-center gap-2">
+                <Check className="h-4 w-4" />
                 {mode === 'loading' ? '積み込み済み' : mode === 'delivery' ? '配送済み' : '完了'}
-                <span className="ml-1">({completedItems.length})</span>
+                <span className="text-xs">({completedItems.length})</span>
               </h3>
+
               {completedItems.map((item) => (
-                <div key={item.id} className="mb-1">
-                  <button
-                    onClick={() => onItemSelect(item.id)}
-                    className={`w-full p-2 rounded-lg text-left transition-colors ${item.id === selectedItemId
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800/50 text-gray-500 hover:bg-gray-700'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium truncate">{item.name || item.id}</span>
-                      <span className="text-xs ml-2 text-green-400">✓</span>
-                    </div>
-                    {item.destination && (
-                      <div className="text-xs text-yellow-400/50 truncate">{item.destination}</div>
+                <div key={item.id} className="mb-2">
+                  <Card
+                    className={cn(
+                      'cursor-pointer transition-colors opacity-60',
+                      item.id === selectedItemId && 'ring-2 ring-primary opacity-100'
                     )}
-                    <div className="text-xs mt-1 opacity-50">
-                      {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg
-                    </div>
-                  </button>
+                    onClick={() => onItemSelect(item.id)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium truncate">{item.name || item.id}</span>
+                        <Check className="h-4 w-4 text-green-500" />
+                      </div>
+                      {item.destination && (
+                        <div className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {item.destination}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {mode && onStatusUndo && (
-                    <button
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation()
                         onStatusUndo(item.id)
                       }}
-                      className="w-full mt-1 py-1.5 rounded text-sm font-medium transition-colors bg-gray-600 hover:bg-gray-500 text-white"
+                      className="w-full mt-1"
+                      variant="ghost"
+                      size="sm"
                     >
+                      <Undo2 className="h-4 w-4 mr-1" />
                       {mode === 'loading' ? '積み込み取消' : '配送取消'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}
             </>
           )}
         </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      {/* Mobile Toggle Button */}
+      <Button
+        onClick={onToggle}
+        className="lg:hidden fixed bottom-32 right-4 z-50 rounded-full h-12 w-12"
+        size="icon"
+      >
+        {isOpen ? <X className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+      </Button>
+
+      {/* Mobile Sidebar */}
+      <div className={cn(
+        'lg:hidden fixed right-0 top-0 bottom-0 z-40 w-80 bg-card border-l border-border flex flex-col h-full overflow-hidden transform transition-transform duration-300',
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      )}>
+        {sidebarContent}
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className={cn(
+        'hidden lg:flex w-80 flex-shrink-0 bg-card border-l border-border flex-col h-full overflow-hidden',
+        !isOpen && 'lg:hidden'
+      )}>
+        {sidebarContent}
       </div>
     </>
   )

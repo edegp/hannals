@@ -3,14 +3,16 @@
 import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { CargoViewer } from '@/components/CargoViewer'
-import { OrderSlider } from '@/components/OrderSlider'
 import { ItemsSidebar } from '@/components/ItemsSidebar'
 import { TruckSelector } from '@/components/TruckSelector'
 import { PlacedItem, CargoArea, Truck } from '@/types'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Truck as TruckIcon, Package, RotateCcw } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-// 入り口方向
 type EntranceDirection = 'front' | 'back' | 'left' | 'right' | null
 
 export default function DeliveryPage() {
@@ -18,16 +20,13 @@ export default function DeliveryPage() {
   const [cargoArea, setCargoArea] = useState<CargoArea | null>(null)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
-  const [maxOrder, setMaxOrder] = useState(10)
   const [entranceDirection, setEntranceDirection] = useState<EntranceDirection>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  // 荷台のOBJ/MTL URLを生成
   const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : undefined
   const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : undefined
 
-  // 荷台選択時の処理
   const handleTruckSelect = useCallback((truck: Truck) => {
     setSelectedTruck(truck)
     setEntranceDirection(truck.entranceDirection as EntranceDirection)
@@ -48,7 +47,6 @@ export default function DeliveryPage() {
     }
   }, [])
 
-  // 初回読み込み時に2tトラックを自動選択
   useEffect(() => {
     const loadDefaultTruck = async () => {
       try {
@@ -67,9 +65,6 @@ export default function DeliveryPage() {
     loadDefaultTruck()
   }, [handleTruckSelect])
 
-  // デモ配置を読み込む
-  // - まずDB上の「最新の配置」を取得し、積み込み/配送ステータスと連動させる
-  // - まだ配置が無い場合のみデモを生成する（配送画面のデモは全て積み込み済みとして扱う）
   const handleLoadDemo = async () => {
     if (!selectedTruck) return
 
@@ -77,7 +72,6 @@ export default function DeliveryPage() {
     try {
       let loadedFromDb = false
 
-      // まず最新配置を参照（積み込み画面で更新した状態とリンクさせる）
       try {
         const placementsRes = await fetch(`${API_URL}/api/placements`)
         if (placementsRes.ok) {
@@ -89,8 +83,6 @@ export default function DeliveryPage() {
               const placement = await detailRes.json()
               const items: PlacedItem[] = placement?.items ?? []
               setPlacedItems(items)
-              const maxItemOrder = Math.max(...items.map((i) => i.order), 1)
-              setMaxOrder(maxItemOrder)
               loadedFromDb = true
             }
           }
@@ -99,7 +91,6 @@ export default function DeliveryPage() {
         // ignore
       }
 
-      // 既存配置がなければデモを作成
       if (!loadedFromDb) {
         const response = await fetch(`${API_URL}/api/demo/optimal/load`, {
           method: 'POST',
@@ -124,8 +115,6 @@ export default function DeliveryPage() {
           }
 
           setPlacedItems(itemsWithLoadedStatus)
-          const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.order), 1)
-          setMaxOrder(maxItemOrder)
         }
       }
     } catch (error) {
@@ -135,19 +124,16 @@ export default function DeliveryPage() {
     }
   }
 
-  // 配送済みにする
   const handleMarkDelivered = async (itemId: string) => {
     let previousDeliveredAt: string | undefined
     const nextDeliveredAt = new Date().toISOString()
 
-    // ローカル状態を更新
     setPlacedItems(prev => prev.map(item => {
       if (item.id !== itemId) return item
       previousDeliveredAt = item.deliveredAt
       return { ...item, isDelivered: true, deliveredAt: nextDeliveredAt }
     }))
 
-    // APIにも送信
     try {
       const response = await fetch(`${API_URL}/api/items/${itemId}/deliver`, {
         method: 'PATCH',
@@ -155,7 +141,7 @@ export default function DeliveryPage() {
       if (!response.ok) {
         throw new Error('API request failed')
       }
-    } catch (error) {
+    } catch {
       setPlacedItems(prev => prev.map(item =>
         item.id === itemId ? { ...item, isDelivered: false, deliveredAt: previousDeliveredAt } : item
       ))
@@ -163,18 +149,15 @@ export default function DeliveryPage() {
     }
   }
 
-  // 配送取消
   const handleUndeliver = async (itemId: string) => {
     let previousDeliveredAt: string | undefined
 
-    // ローカル状態を更新
     setPlacedItems(prev => prev.map(item => {
       if (item.id !== itemId) return item
       previousDeliveredAt = item.deliveredAt
       return { ...item, isDelivered: false, deliveredAt: undefined }
     }))
 
-    // APIにも送信
     try {
       const response = await fetch(`${API_URL}/api/items/${itemId}/undeliver`, {
         method: 'PATCH',
@@ -182,7 +165,7 @@ export default function DeliveryPage() {
       if (!response.ok) {
         throw new Error('API request failed')
       }
-    } catch (error) {
+    } catch {
       setPlacedItems(prev => prev.map(item =>
         item.id === itemId ? { ...item, isDelivered: true, deliveredAt: previousDeliveredAt } : item
       ))
@@ -190,99 +173,96 @@ export default function DeliveryPage() {
     }
   }
 
-  // リセット
   const handleReset = () => {
     setPlacedItems([])
   }
 
-  // 配送待ちアイテム（積み込み済みかつ配送済みでない）
   const pendingDeliveryItems = placedItems
     .filter(item => item.isLoaded && !item.isDelivered)
-    .sort((a, b) => a.order - b.order)  // order順（小さい順 = 先に配送）
+    .sort((a, b) => a.order - b.order)
 
-  // 配送済みアイテム
   const deliveredItems = placedItems
     .filter(item => item.isDelivered)
     .sort((a, b) => a.order - b.order)
 
-  const maxItemOrder = placedItems.length > 0
-    ? Math.max(...placedItems.map(i => i.order))
-    : 1
-
   const deliveredCount = placedItems.filter(item => item.isDelivered).length
   const totalLoadedCount = placedItems.filter(item => item.isLoaded).length
+  const progressPercent = totalLoadedCount > 0 ? (deliveredCount / totalLoadedCount) * 100 : 0
 
   return (
-    <div className="h-screen flex bg-gray-900 overflow-hidden">
+    <div className="h-screen flex bg-background overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* ヘッダー */}
-        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-white">配送画面</h1>
+        {/* Header */}
+        <header className="border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <TruckIcon className="h-5 w-5 text-primary" />
+                <h1 className="text-xl font-semibold tracking-tight">配送</h1>
+              </div>
+
               <TruckSelector
                 selectedTruck={selectedTruck}
                 onSelect={handleTruckSelect}
               />
-              {/* ナビゲーションタブ */}
-              <div className="flex gap-1 ml-4">
-                <Link
-                  href="/loading"
-                  className="px-3 py-1.5 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600"
-                >
-                  積み込み
+
+              {/* Navigation */}
+              <nav className="flex gap-1">
+                <Link href="/loading">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    積み込み
+                  </Button>
                 </Link>
-                <span className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm">
+                <Button variant="secondary" size="sm">
                   配送
-                </span>
-              </div>
+                </Button>
+              </nav>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-3">
               {selectedTruck && cargoArea && (
                 <>
-                  <span className="text-gray-400 text-sm">
-                    積載領域: {((cargoArea.maxX - cargoArea.minX) / 1000).toFixed(1)}m x
-                    {((cargoArea.maxY - cargoArea.minY) / 1000).toFixed(1)}m x
+                  <Badge variant="outline" className="font-normal">
+                    {((cargoArea.maxX - cargoArea.minX) / 1000).toFixed(1)}m ×
+                    {((cargoArea.maxY - cargoArea.minY) / 1000).toFixed(1)}m ×
                     {((cargoArea.maxZ - cargoArea.minZ) / 1000).toFixed(1)}m
-                  </span>
+                  </Badge>
 
-                  <button
+                  <Button
                     onClick={handleLoadDemo}
                     disabled={isLoading}
-                    className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm disabled:opacity-50"
+                    size="sm"
                   >
-                    デモ
-                  </button>
+                    <Package className="h-4 w-4 mr-2" />
+                    デモ読込
+                  </Button>
 
-                  <button
+                  <Button
                     onClick={handleReset}
-                    className="px-3 py-1.5 bg-red-500 text-white rounded text-sm"
+                    variant="destructive"
+                    size="sm"
                   >
+                    <RotateCcw className="h-4 w-4 mr-2" />
                     リセット
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
           </div>
 
-          {/* 進捗表示 */}
+          {/* Progress */}
           {placedItems.length > 0 && (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-gray-400">
-                配送進捗: {deliveredCount} / {totalLoadedCount}
-              </span>
-              <div className="flex-1 max-w-xs bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
-                  style={{ width: totalLoadedCount > 0 ? `${(deliveredCount / totalLoadedCount) * 100}%` : '0%' }}
-                />
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">配送進捗</span>
+                <span className="font-medium">{deliveredCount} / {totalLoadedCount}</span>
               </div>
+              <Progress value={progressPercent} className="h-2" />
             </div>
           )}
         </header>
 
-        {/* 3Dビューアー: 配送待ちアイテム（まだトラックに残っているもの） */}
+        {/* 3D Viewer */}
         <div className="flex-1 relative overflow-hidden">
           {objUrl && (
             <CargoViewer
@@ -291,7 +271,6 @@ export default function DeliveryPage() {
               placedItems={pendingDeliveryItems}
               selectedItemId={selectedItemId}
               onItemSelect={setSelectedItemId}
-              maxOrder={maxOrder}
               cargoArea={cargoArea}
               entrancePoint={null}
               entranceDirection={entranceDirection}
@@ -302,28 +281,15 @@ export default function DeliveryPage() {
             />
           )}
         </div>
-
-        {/* スライダー */}
-        {placedItems.length > 0 && (
-          <div className="flex-shrink-0 p-4 bg-gray-800 border-t border-gray-700">
-            <OrderSlider
-              min={1}
-              max={maxItemOrder}
-              value={maxOrder}
-              onChange={setMaxOrder}
-            />
-          </div>
-        )}
       </div>
 
-      {/* 右側: サイドバー */}
+      {/* Sidebar */}
       {placedItems.length > 0 && (
         <ItemsSidebar
           items={pendingDeliveryItems}
           completedItems={deliveredItems}
           selectedItemId={selectedItemId}
           onItemSelect={setSelectedItemId}
-          maxOrder={maxOrder}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
           mode="delivery"

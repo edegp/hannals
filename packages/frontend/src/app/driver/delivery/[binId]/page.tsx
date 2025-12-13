@@ -264,9 +264,7 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
                 placedItems={placedItems}
                 selectedItemId={selectedItemId}
                 onItemSelect={setSelectedItemId}
-                maxOrder={selectedStop} // 選択されたStopまでの荷物を表示
                 cargoArea={cargoArea}
-                entrancePoint={null}
                 entranceDirection={null}
                 isSelectingEntrance={false}
                 onEntranceClick={() => { }}

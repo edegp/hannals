@@ -258,9 +258,7 @@ export default function LoadingPlanPage() {
                 placedItems={placedItems}
                 selectedItemId={selectedItemId}
                 onItemSelect={setSelectedItemId}
-                maxOrder={maxOrder}
                 cargoArea={cargoArea}
-                entrancePoint={null}
                 entranceDirection={selectedTruck.entranceDirection as any}
                 isSelectingEntrance={false}
                 onEntranceClick={() => {}}
