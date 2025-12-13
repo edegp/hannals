@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { PlacedItem, ViewerMode } from '@/types'
@@ -38,6 +39,48 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
   const getItemOrder = (item: PlacedItem) => (mode === 'delivery' ? item.order : (item.loadOrder ?? item.order))
   const visibleItems = items.filter(item => getItemOrder(item) <= maxOrder)
 
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+  const pendingHeaderRef = useRef<HTMLHeadingElement | null>(null)
+  const completedHeaderRef = useRef<HTMLHeadingElement | null>(null)
+
+  const scrollToPending = () => {
+    pendingHeaderRef.current?.scrollIntoView({ block: 'start' })
+  }
+
+  const scrollToCompleted = () => {
+    completedHeaderRef.current?.scrollIntoView({ block: 'start' })
+  }
+
+  const undoLabel = mode === 'loading' ? '積み込み取消' : '配送取消'
+
+  const resolveUndoTargetId = () => {
+    if (!mode || !onStatusUndo || completedItems.length === 0) return null
+
+    const selectedCompleted = selectedItemId
+      ? completedItems.find((i) => i.id === selectedItemId)
+      : undefined
+
+    if (selectedCompleted) return selectedCompleted.id
+
+    const getCompletedAtMs = (item: PlacedItem) => {
+      const dateStr = mode === 'loading' ? item.loadedAt : item.deliveredAt
+      const ms = dateStr ? Date.parse(dateStr) : NaN
+      return Number.isFinite(ms) ? ms : -1
+    }
+
+    let latest = completedItems[0]
+    let latestMs = getCompletedAtMs(latest)
+    for (const item of completedItems) {
+      const ms = getCompletedAtMs(item)
+      if (ms > latestMs) {
+        latest = item
+        latestMs = ms
+      }
+    }
+
+    return latest?.id ?? null
+  }
+
   return (
     <>
       {/* モバイル用トグルボタン */}
@@ -56,10 +99,44 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
         ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-4 border-b border-gray-700">
-          <h2 className="text-lg font-semibold text-white">アイテム情報</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-white">アイテム情報</h2>
+            {mode && onStatusUndo && completedItems.length > 0 && (
+              <button
+                onClick={() => {
+                  const targetId = resolveUndoTargetId()
+                  if (targetId) onStatusUndo(targetId)
+                }}
+                className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
+              >
+                ↩︎ {undoLabel}
+              </button>
+            )}
+          </div>
           <p className="text-sm text-gray-400">
             表示中: {visibleItems.length} / {items.length}
           </p>
+
+          {(items.length > 0 || completedItems.length > 0) && (
+            <div className="mt-3 flex gap-2">
+              {items.length > 0 && (
+                <button
+                  onClick={scrollToPending}
+                  className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
+                >
+                  {mode === 'loading' ? '積み込み待ちへ' : mode === 'delivery' ? '配送待ちへ' : '一覧へ'}
+                </button>
+              )}
+              {completedItems.length > 0 && (
+                <button
+                  onClick={scrollToCompleted}
+                  className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-200 hover:bg-gray-600"
+                >
+                  {mode === 'loading' ? '積み込み済みへ' : mode === 'delivery' ? '配送済みへ' : '完了へ'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {selectedItem ? (
@@ -128,9 +205,9 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-2">
         {/* 未完了アイテム */}
-        <h3 className="text-sm font-medium text-gray-400 px-2 mb-2">
+        <h3 ref={pendingHeaderRef} className="text-sm font-medium text-gray-400 px-2 mb-2">
           {mode === 'loading' ? '積み込み待ち' : mode === 'delivery' ? '配送待ち' : 'アイテム一覧'}
           {items.length > 0 && <span className="ml-1">({items.length})</span>}
         </h3>
@@ -180,7 +257,7 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
         {/* 完了済みアイテム */}
         {completedItems.length > 0 && (
           <>
-            <h3 className="text-sm font-medium text-gray-400 px-2 mb-2 mt-4 border-t border-gray-700 pt-4">
+            <h3 ref={completedHeaderRef} className="text-sm font-medium text-gray-400 px-2 mb-2 mt-4 border-t border-gray-700 pt-4">
               {mode === 'loading' ? '積み込み済み' : mode === 'delivery' ? '配送済み' : '完了'}
               <span className="ml-1">({completedItems.length})</span>
             </h3>

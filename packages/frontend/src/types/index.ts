@@ -49,6 +49,8 @@ export interface PlacedItem extends Item {
   loadedAt?: string     // 積み込み日時
   isDelivered?: boolean // 配送済み
   deliveredAt?: string  // 配送日時
+  objData?: string      // 3DモデルOBJデータ
+  mtlData?: string | null // 3DモデルMTLデータ
 }
 
 // 画面モード

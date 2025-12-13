@@ -70,6 +70,19 @@ itemsRoutes.patch('/:id/unload', async (c) => {
 itemsRoutes.patch('/:id/deliver', async (c) => {
   const id = c.req.param('id')
 
+  const current = await prisma.placedItem.findUnique({
+    where: { id },
+    select: { isLoaded: true },
+  })
+
+  if (!current) {
+    return c.json({ error: 'Item not found' }, 404)
+  }
+
+  if (!current.isLoaded) {
+    return c.json({ error: 'Item must be loaded before delivery' }, 400)
+  }
+
   try {
     const existing = await prisma.placedItem.findUnique({
       where: { id },
