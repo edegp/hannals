@@ -61,13 +61,12 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
         loadedObj.rotation.x = -Math.PI / 2
         loadedObj.updateMatrixWorld(true)
         const rotatedBox = new THREE.Box3().setFromObject(loadedObj)
-        const rotatedCenter = rotatedBox.getCenter(new THREE.Vector3())
 
-        // 水平方向（X, Z）は中央に、垂直方向（Y）は底面をY=0に配置
+        // 原点（0,0,0）を基準に配置（配置座標と一致させるため）
         loadedObj.position.set(
-          -rotatedCenter.x,
+          -rotatedBox.min.x,  // X=0を基準に
           -rotatedBox.min.y,  // 底面をY=0に
-          -rotatedCenter.z
+          -rotatedBox.min.z   // Z=0を基準に
         )
 
         const maxDim = Math.max(size.x, size.y, size.z)
@@ -151,11 +150,14 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
         />
       </mesh>
 
-      <Html center distanceFactor={10}>
-        <div className="bg-black/70 text-white text-xs px-1 rounded whitespace-nowrap">
-          {item.id}
-        </div>
-      </Html>
+      {/* 選択されたアイテムのみラベル表示 */}
+      {isSelected && (
+        <Html center distanceFactor={10}>
+          <div className="bg-black/70 text-white text-xs px-1 rounded whitespace-nowrap">
+            {item.id}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
@@ -216,6 +218,119 @@ function LoadingBox() {
   )
 }
 
+interface EntranceIndicatorProps {
+  cargoArea: CargoArea | null
+  entranceDirection: string | null
+}
+
+function EntranceIndicator({ cargoArea, entranceDirection }: EntranceIndicatorProps) {
+  if (!cargoArea || !entranceDirection) return null
+
+  const scale = 0.001
+  const width = (cargoArea.maxX - cargoArea.minX) * scale
+  const depth = (cargoArea.maxY - cargoArea.minY) * scale
+  const height = (cargoArea.maxZ - cargoArea.minZ) * scale
+  const centerX = (cargoArea.minX + cargoArea.maxX) / 2 * scale
+  const centerY = (cargoArea.minY + cargoArea.maxY) / 2 * scale
+  const centerZ = (cargoArea.minZ + cargoArea.maxZ) / 2 * scale
+
+  // 入口の位置と矢印の方向を計算
+  let entrancePos: [number, number, number] = [0, 0, 0]
+  let arrowEnd: [number, number, number] = [0, 0, 0]
+  let labelOffset: [number, number, number] = [0, 0, 0]
+  const arrowLength = Math.min(width, depth) * 0.3
+
+  switch (entranceDirection) {
+    case 'front': // Y方向+（手前）
+      entrancePos = [centerX, height * 0.1, cargoArea.maxY * scale]
+      arrowEnd = [centerX, height * 0.1, cargoArea.maxY * scale + arrowLength]
+      labelOffset = [0, 0.2, 0.3]
+      break
+    case 'back': // Y方向-（奥）
+      entrancePos = [centerX, height * 0.1, cargoArea.minY * scale]
+      arrowEnd = [centerX, height * 0.1, cargoArea.minY * scale - arrowLength]
+      labelOffset = [0, 0.2, -0.3]
+      break
+    case 'left': // X方向-
+      entrancePos = [cargoArea.minX * scale, height * 0.1, centerY]
+      arrowEnd = [cargoArea.minX * scale - arrowLength, height * 0.1, centerY]
+      labelOffset = [-0.3, 0.2, 0]
+      break
+    case 'right': // X方向+
+      entrancePos = [cargoArea.maxX * scale, height * 0.1, centerY]
+      arrowEnd = [cargoArea.maxX * scale + arrowLength, height * 0.1, centerY]
+      labelOffset = [0.3, 0.2, 0]
+      break
+  }
+
+  // 矢印の先端（三角形）を作成
+  const arrowHeadSize = arrowLength * 0.3
+
+  // コーンの回転を計算（デフォルトはY+方向）
+  let coneRotation: [number, number, number] = [0, 0, 0]
+  switch (entranceDirection) {
+    case 'front': // Z+方向
+      coneRotation = [Math.PI / 2, 0, 0]
+      break
+    case 'back': // Z-方向
+      coneRotation = [-Math.PI / 2, 0, 0]
+      break
+    case 'left': // X-方向
+      coneRotation = [0, 0, Math.PI / 2]
+      break
+    case 'right': // X+方向
+      coneRotation = [0, 0, -Math.PI / 2]
+      break
+  }
+
+  return (
+    <group>
+      {/* 入口を示す線 */}
+      <Line
+        points={[entrancePos, arrowEnd]}
+        color="#22c55e"
+        lineWidth={4}
+      />
+
+      {/* 矢印の先端（コーン） */}
+      <mesh position={arrowEnd} rotation={coneRotation}>
+        <coneGeometry args={[arrowHeadSize * 0.5, arrowHeadSize, 8]} />
+        <meshBasicMaterial color="#22c55e" />
+      </mesh>
+
+      {/* 入口ラベル */}
+      <Html
+        position={[
+          arrowEnd[0] + labelOffset[0],
+          arrowEnd[1] + labelOffset[1],
+          arrowEnd[2] + labelOffset[2]
+        ]}
+        center
+        distanceFactor={8}
+      >
+        <div className="bg-green-600 text-white text-sm px-2 py-1 rounded font-bold whitespace-nowrap shadow-lg">
+          入口 ↓
+        </div>
+      </Html>
+
+      {/* 奥側ラベル */}
+      <Html
+        position={[
+          entranceDirection === 'front' ? centerX : entranceDirection === 'back' ? centerX : entranceDirection === 'left' ? cargoArea.maxX * scale : cargoArea.minX * scale,
+          height * 0.8,
+          entranceDirection === 'front' ? cargoArea.minY * scale : entranceDirection === 'back' ? cargoArea.maxY * scale : centerY
+        ]}
+        center
+        distanceFactor={8}
+      >
+        <div className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded whitespace-nowrap">
+          奥
+        </div>
+      </Html>
+    </group>
+  )
+}
+
 interface CargoViewerProps {
   objUrl: string
   mtlUrl?: string
@@ -263,14 +378,15 @@ export function CargoViewer({
             onPointClick={onEntranceClick}
             isSelectingArea={isSelectingEntrance}
           />
-          <CargoAreaBox area={cargoArea} points={[]} />
+          {/* CargoAreaBox removed - OBJ model shows cargo area */}
+          <EntranceIndicator cargoArea={cargoArea} entranceDirection={entranceDirection} />
           {placedItems.map((item) => (
             <PlacedItemBox
               key={item.id}
               item={item}
               isSelected={item.id === selectedItemId}
               onClick={() => onItemSelect(item.id)}
-              visible={item.order <= maxOrder}
+              visible={(item.loadOrder ?? item.order) <= maxOrder}
             />
           ))}
         </Suspense>

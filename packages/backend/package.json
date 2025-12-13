@@ -8,7 +8,9 @@
     "type-check": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "generate:demo": "tsx scripts/generatePlacementDemo.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

@@ -28,7 +28,7 @@ function ItemPreview({ item }: { item: PlacedItem }) {
 
 export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: ItemsSidebarProps) {
   const selectedItem = items.find(item => item.id === selectedItemId)
-  const visibleItems = items.filter(item => item.order <= maxOrder)
+  const visibleItems = items.filter(item => (item.loadOrder ?? item.order) <= maxOrder)
 
   return (
     <div className="w-80 h-full bg-gray-900 border-l border-gray-700 flex flex-col">
@@ -41,7 +41,8 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
 
       {selectedItem ? (
         <div className="p-4 border-b border-gray-700">
-          <h3 className="font-medium text-white mb-3">{selectedItem.id}</h3>
+          <h3 className="font-medium text-white mb-1">{selectedItem.name || selectedItem.id}</h3>
+          <p className="text-xs text-gray-500 mb-3">{selectedItem.id}</p>
 
           <div className="h-32 bg-gray-800 rounded-lg mb-3">
             <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
@@ -53,6 +54,12 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
           </div>
 
           <div className="space-y-2 text-sm">
+            {selectedItem.destination && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">配送先</span>
+                <span className="text-yellow-400">{selectedItem.destination}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-400">サイズ (mm)</span>
               <span className="text-white">
@@ -64,8 +71,12 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
               <span className="text-white">{selectedItem.weight_kg} kg</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">積み込み順</span>
-              <span className="text-white">{selectedItem.order}</span>
+              <span className="text-gray-400">配送順</span>
+              <span className="text-white">#{selectedItem.order}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">積込順</span>
+              <span className="text-white">#{selectedItem.loadOrder ?? '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">壊れ物</span>
@@ -96,17 +107,20 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
             className={`w-full p-2 rounded-lg mb-1 text-left transition-colors ${
               item.id === selectedItemId
                 ? 'bg-blue-600 text-white'
-                : item.order <= maxOrder
+                : (item.loadOrder ?? item.order) <= maxOrder
                 ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 : 'bg-gray-800/50 text-gray-500'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium">{item.id}</span>
-              <span className="text-xs">#{item.order}</span>
+              <span className="font-medium truncate">{item.name || item.id}</span>
+              <span className="text-xs ml-2">#{item.loadOrder ?? item.order}</span>
             </div>
+            {item.destination && (
+              <div className="text-xs text-yellow-400 truncate">{item.destination}</div>
+            )}
             <div className="text-xs mt-1 opacity-70">
-              {item.weight_kg}kg {item.fragile && '🔴'}
+              {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg {item.fragile && '🔴'}
             </div>
           </button>
         ))}

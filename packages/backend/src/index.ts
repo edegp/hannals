@@ -5,6 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { trucksRoutes } from './routes/trucks'
 import { placementsRoutes } from './routes/placements'
 import { dimensionsRoutes } from './routes/dimensions'
+import { demoRoutes } from './routes/demo'
 
 const app = new Hono()
 
@@ -25,6 +26,7 @@ app.get('/', (c) => c.json({ status: 'ok', message: 'Hannals API' }))
 app.route('/api/trucks', trucksRoutes)
 app.route('/api/placements', placementsRoutes)
 app.route('/api/dimensions', dimensionsRoutes)
+app.route('/api/demo', demoRoutes)
 
 const port = Number(process.env.PORT) || 8080
 console.log(`Server is running on http://localhost:${port}`)

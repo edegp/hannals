@@ -26,6 +26,14 @@ migrate:
 studio:
 	cd packages/backend && npx prisma studio
 
+## DBシード実行（2tトラック登録）
+seed:
+	pnpm --filter backend run db:seed
+
+## デモデータ生成（80%積載量の配置OBJ）
+generate-demo:
+	pnpm --filter backend run generate:demo
+
 # ========== デプロイ ==========
 
 ## 本番デプロイ（ビルド + 転送 + 再起動）
@@ -100,6 +108,8 @@ help:
 	@echo "    make install    - 依存関係インストール"
 	@echo "    make migrate    - Prismaマイグレーション"
 	@echo "    make studio     - Prisma Studio起動"
+	@echo "    make seed       - DBシード（2tトラック登録）"
+	@echo "    make generate-demo - デモデータ生成"
 	@echo ""
 	@echo "  デプロイ:"
 	@echo "    make deploy     - 本番デプロイ（全工程）"
@@ -118,4 +128,4 @@ help:
 	@echo "  オプション:"
 	@echo "    SERVER_IP=x.x.x.x  - サーバーIP指定"
 
-.PHONY: dev build install migrate studio deploy deploy-sync deploy-setup restart status logs-backend logs-frontend ssh tf-init tf-plan tf-apply tf-destroy tf-output help
+.PHONY: dev build install migrate studio seed generate-demo deploy deploy-sync deploy-setup restart status logs-backend logs-frontend ssh tf-init tf-plan tf-apply tf-destroy tf-output help

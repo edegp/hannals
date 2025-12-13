@@ -39,8 +39,8 @@ export default function Home() {
   const [inputItems, setInputItems] = useState<Item[]>(sampleItems)
 
   // 荷台のOBJ/MTL URLを生成
-  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : '/trunkVoxel_cleaned.obj'
-  const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : '/trunkVoxel_2512131543.mtl'
+  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : '/viewer/trunkVoxel_cleaned.obj'
+  const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : '/viewer/trunkVoxel_2512131543.mtl'
 
   // 荷台選択時の処理
   const handleTruckSelect = useCallback((truck: Truck) => {
@@ -155,6 +155,27 @@ export default function Home() {
     }
   }
 
+  // デモ配置を読み込む
+  const handleLoadDemo = async (type: 'optimal' | 'random') => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/api/demo/${type}/items`)
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Demo loaded:', result.items.length, 'items')
+        console.log('First item:', result.items[0])
+        setPlacedItems(result.items)
+        // loadOrderがあればそれを使う、なければorderを使う
+        const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.loadOrder ?? i.order), 1)
+        setMaxOrder(maxItemOrder)
+      }
+    } catch (error) {
+      console.error('Failed to load demo:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // リセット
   const handleReset = () => {
     setSelectedTruck(null)
@@ -165,7 +186,7 @@ export default function Home() {
   }
 
   const maxItemOrder = placedItems.length > 0
-    ? Math.max(...placedItems.map(i => i.order))
+    ? Math.max(...placedItems.map(i => i.loadOrder ?? i.order))
     : 1
 
   const getDirectionLabel = (dir: EntranceDirection) => {
@@ -230,6 +251,22 @@ export default function Home() {
                   className="px-4 py-2 bg-green-500 text-white rounded disabled:opacity-50"
                 >
                   荷物を配置
+                </button>
+
+                <button
+                  onClick={() => handleLoadDemo('optimal')}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+                >
+                  デモ（最適）
+                </button>
+
+                <button
+                  onClick={() => handleLoadDemo('random')}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-gray-500 text-white rounded disabled:opacity-50"
+                >
+                  デモ（ランダム）
                 </button>
 
                 <button

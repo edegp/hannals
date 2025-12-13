@@ -27,6 +27,8 @@ export interface Placement {
 // 荷物アイテム（入力）
 export interface Item {
   id: string
+  name?: string        // 品目名
+  destination?: string // 配送先
   x_mm: number
   y_mm: number
   z_mm: number
@@ -42,6 +44,7 @@ export interface PlacedItem extends Item {
   posY: number
   posZ: number
   rotation: number
+  loadOrder?: number  // 積み込み順番（1から始まる）
 }
 
 // クリック位置
