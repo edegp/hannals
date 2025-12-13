@@ -17,22 +17,21 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    const fetchTrucks = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/trucks`)
+        if (response.ok) {
+          const data = await response.json()
+          setTrucks(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch trucks:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
     fetchTrucks()
   }, [])
-
-  const fetchTrucks = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/trucks`)
-      if (response.ok) {
-        const data = await response.json()
-        setTrucks(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch trucks:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleDelete = async (e: React.MouseEvent, truck: Truck) => {
     e.stopPropagation()
