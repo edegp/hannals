@@ -46,3 +46,14 @@ next-env.d.ts
 # backend
 packages/backend/uploads/
 packages/backend/logs/
+**/dist/
+
+# terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.backup
+terraform/.terraform.lock.hcl
+terraform/.envrc
+.envrc

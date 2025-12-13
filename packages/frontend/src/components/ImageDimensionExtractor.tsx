@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Item } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 interface ExtractedItem {
   id: string

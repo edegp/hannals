@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -137,7 +138,7 @@ placementsRoutes.post('/', async (c) => {
   const placement = await prisma.placement.create({
     data: {
       truckId,
-      resultData: apiResponse,
+      resultData: apiResponse as unknown as Prisma.InputJsonValue,
       items: {
         create: apiResponse.placedItems.map((item) => ({
           itemId: item.id,
@@ -324,7 +325,7 @@ placementsRoutes.post('/mock/calculate', async (c) => {
         ...apiResponse,
         mockGenerated: true,
         targetLoadRate,
-      },
+      } as unknown as Prisma.InputJsonValue,
       items: {
         create: apiResponse.placedItems.map((item) => ({
           itemId: item.id,

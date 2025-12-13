@@ -7,9 +7,10 @@ import { ItemsSidebar } from '@/components/ItemsSidebar'
 import { TruckUploader } from '@/components/TruckUploader'
 import { TruckSelector } from '@/components/TruckSelector'
 import { ImageDimensionExtractor } from '@/components/ImageDimensionExtractor'
+import { CsvImporter } from '@/components/CsvImporter'
 import { PlacedItem, CargoArea, ClickPoint, Item, Truck } from '@/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 // サンプル荷物データ
 const sampleItems: Item[] = [
@@ -34,6 +35,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [showUploader, setShowUploader] = useState(false)
   const [showDimensionExtractor, setShowDimensionExtractor] = useState(false)
+  const [showCsvImporter, setShowCsvImporter] = useState(false)
   const [inputItems, setInputItems] = useState<Item[]>(sampleItems)
 
   // 荷台のOBJ/MTL URLを生成
@@ -117,6 +119,12 @@ export default function Home() {
   const handleItemsExtracted = useCallback((items: Item[]) => {
     setInputItems(items)
     setShowDimensionExtractor(false)
+  }, [])
+
+  // CSVからインポートされた荷物を設定
+  const handleItemsImported = useCallback((items: Item[]) => {
+    setInputItems(items)
+    setShowCsvImporter(false)
   }, [])
 
   // 荷物を配置（外部API経由）
@@ -206,7 +214,14 @@ export default function Home() {
                   onClick={() => setShowDimensionExtractor(true)}
                   className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-400"
                 >
-                  画像から荷物追加 ({inputItems.length})
+                  画像から荷物追加
+                </button>
+
+                <button
+                  onClick={() => setShowCsvImporter(true)}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-500"
+                >
+                  CSVインポート ({inputItems.length})
                 </button>
 
                 <button
@@ -291,6 +306,14 @@ export default function Home() {
         <ImageDimensionExtractor
           onItemsExtracted={handleItemsExtracted}
           onClose={() => setShowDimensionExtractor(false)}
+        />
+      )}
+
+      {/* CSVインポートモーダル */}
+      {showCsvImporter && (
+        <CsvImporter
+          onItemsImported={handleItemsImported}
+          onClose={() => setShowCsvImporter(false)}
         />
       )}
     </div>

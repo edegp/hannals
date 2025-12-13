@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react'
 import { Canvas, useThree, ThreeEvent } from '@react-three/fiber'
-import { OrbitControls, Environment, Line, Html } from '@react-three/drei'
+import { OrbitControls, Environment, Line, Html, Edges } from '@react-three/drei'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import * as THREE from 'three'
@@ -130,27 +130,30 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
   const posY = item.posY * scale
   const posZ = item.posZ * scale
 
-  // 色設定
-  const color = item.fragile ? '#ff6b6b' : isSelected ? '#4ecdc4' : '#45b7d1'
+  // 色設定（より見やすい色）
+  const edgeColor = item.fragile ? '#ff0000' : isSelected ? '#00ff00' : '#0066ff'
 
   return (
-    <mesh
+    <group
       position={[posX + width/2, posZ + height/2, posY + depth/2]}
       rotation={[0, (item.rotation * Math.PI) / 180, 0]}
-      onClick={(e) => { e.stopPropagation(); onClick() }}
     >
-      <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial 
-        color={color} 
-        transparent 
-        opacity={isSelected ? 0.9 : 0.7}
-      />
+      {/* ワイヤーフレーム表示（クリック可能） */}
+      <mesh onClick={(e) => { e.stopPropagation(); onClick() }}>
+        <boxGeometry args={[width, height, depth]} />
+        <meshBasicMaterial
+          wireframe={true}
+          color={edgeColor}
+          transparent={false}
+        />
+      </mesh>
+
       <Html center distanceFactor={10}>
         <div className="bg-black/70 text-white text-xs px-1 rounded whitespace-nowrap">
-          {item.itemId}
+          {item.id}
         </div>
       </Html>
-    </mesh>
+    </group>
   )
 }
 
@@ -260,10 +263,10 @@ export function CargoViewer({
           <CargoAreaBox area={cargoArea} points={[]} />
           {placedItems.map((item) => (
             <PlacedItemBox
-              key={item.itemId}
+              key={item.id}
               item={item}
-              isSelected={item.itemId === selectedItemId}
-              onClick={() => onItemSelect(item.itemId)}
+              isSelected={item.id === selectedItemId}
+              onClick={() => onItemSelect(item.id)}
               visible={item.order <= maxOrder}
             />
           ))}

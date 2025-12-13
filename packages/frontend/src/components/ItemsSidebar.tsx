@@ -27,7 +27,7 @@ function ItemPreview({ item }: { item: PlacedItem }) {
 }
 
 export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: ItemsSidebarProps) {
-  const selectedItem = items.find(item => item.itemId === selectedItemId)
+  const selectedItem = items.find(item => item.id === selectedItemId)
   const visibleItems = items.filter(item => item.order <= maxOrder)
 
   return (
@@ -41,7 +41,7 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
 
       {selectedItem ? (
         <div className="p-4 border-b border-gray-700">
-          <h3 className="font-medium text-white mb-3">{selectedItem.itemId}</h3>
+          <h3 className="font-medium text-white mb-3">{selectedItem.id}</h3>
 
           <div className="h-32 bg-gray-800 rounded-lg mb-3">
             <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
@@ -91,10 +91,10 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
         <h3 className="text-sm font-medium text-gray-400 px-2 mb-2">アイテム一覧</h3>
         {items.map((item) => (
           <button
-            key={item.itemId}
-            onClick={() => onItemSelect(item.itemId)}
+            key={item.id}
+            onClick={() => onItemSelect(item.id)}
             className={`w-full p-2 rounded-lg mb-1 text-left transition-colors ${
-              item.itemId === selectedItemId
+              item.id === selectedItemId
                 ? 'bg-blue-600 text-white'
                 : item.order <= maxOrder
                 ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -102,7 +102,7 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium">{item.itemId}</span>
+              <span className="font-medium">{item.id}</span>
               <span className="text-xs">#{item.order}</span>
             </div>
             <div className="text-xs mt-1 opacity-70">

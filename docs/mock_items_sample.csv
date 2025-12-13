@@ -1,0 +1,13 @@
+id,x_mm,y_mm,z_mm,order,weight_kg,fragile,rot_xy
+X12-001,485,325,295,1,18.5,false,true
+X11-002,405,305,255,2,12.3,false,true
+X11-003,405,305,255,3,11.8,false,true
+X08-004,315,245,105,4,3.2,false,true
+X08-005,315,245,105,5,2.9,false,false
+XY05-006,250,180,120,6,2.1,false,true
+XY05-007,250,180,120,7,1.9,false,true
+XY13-008,330,255,30,8,1.2,false,true
+XM01-009,286,213,24,9,0.8,false,true
+XM02-010,232,133,22,10,0.4,true,true
+XM01-011,286,213,24,11,0.7,true,false
+XM02-012,232,133,22,12,0.3,true,true
