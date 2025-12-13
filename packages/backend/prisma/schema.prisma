@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 荷台（トラック）
+model Truck {
+  id                String   @id @default(cuid())
+  name              String
+  // 3Dファイルパス
+  objFilePath       String
+  mtlFilePath       String?
+  // 入り口方向 (front, back, left, right)
+  entranceDirection String   @default("back")
+  // バウンディングボックス（mm単位、自動検出）
+  minX              Float?
+  minY              Float?
+  minZ              Float?
+  maxX              Float?
+  maxY              Float?
+  maxZ              Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  placements        Placement[]
+}
+
+// 配置セッション
+model Placement {
+  id         String       @id @default(cuid())
+  truck      Truck        @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  truckId    String
+  // 外部APIからの配置結果
+  resultData Json?
+  createdAt  DateTime     @default(now())
+  items      PlacedItem[]
+}
+
+// 配置済み荷物
+model PlacedItem {
+  id          String    @id @default(cuid())
+  itemId      String    // 外部ID（ユーザー指定）
+  // サイズ（mm）
+  x_mm        Int
+  y_mm        Int
+  z_mm        Int
+  order       Int       // 積み込み順
+  weight_kg   Float
+  fragile     Boolean   @default(false)
+  rot_xy      Boolean   @default(false)
+  // 配置位置（原点基準、mm単位）
+  posX        Float
+  posY        Float
+  posZ        Float
+  rotation    Float     @default(0)
+  // リレーション
+  placement   Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  placementId String
+  createdAt   DateTime  @default(now())
+}

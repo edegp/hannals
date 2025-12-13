@@ -1,0 +1,16 @@
+{
+  "name": "hannals",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "build": "pnpm -r run build",
+    "start": "pnpm -r --parallel run start",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:generate": "pnpm --filter backend db:generate"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

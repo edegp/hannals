@@ -1,0 +1,39 @@
+-- CreateTable
+CREATE TABLE "CargoArea" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "minX" DOUBLE PRECISION NOT NULL,
+    "minY" DOUBLE PRECISION NOT NULL,
+    "minZ" DOUBLE PRECISION NOT NULL,
+    "maxX" DOUBLE PRECISION NOT NULL,
+    "maxY" DOUBLE PRECISION NOT NULL,
+    "maxZ" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CargoArea_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PlacedItem" (
+    "id" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "x_mm" INTEGER NOT NULL,
+    "y_mm" INTEGER NOT NULL,
+    "z_mm" INTEGER NOT NULL,
+    "order" INTEGER NOT NULL,
+    "weight_kg" DOUBLE PRECISION NOT NULL,
+    "fragile" BOOLEAN NOT NULL DEFAULT false,
+    "rot_xy" BOOLEAN NOT NULL DEFAULT false,
+    "posX" DOUBLE PRECISION NOT NULL,
+    "posY" DOUBLE PRECISION NOT NULL,
+    "posZ" DOUBLE PRECISION NOT NULL,
+    "rotation" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "cargoAreaId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PlacedItem_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "PlacedItem" ADD CONSTRAINT "PlacedItem_cargoAreaId_fkey" FOREIGN KEY ("cargoAreaId") REFERENCES "CargoArea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
