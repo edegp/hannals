@@ -115,8 +115,7 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
                     onSelect(truck)
                     setIsOpen(false)
                   }}
-                  className={`px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center justify-between ${selectedTruck?.id === truck.id ? 'bg-gray-700' : ''
-                    }`}
+                  className={`px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center justify-between ${selectedTruck?.id === truck.id ? 'bg-gray-700' : ''}`}
                 >
                   <div>
                     <div className="text-white">{truck.name}</div>
