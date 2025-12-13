@@ -6,13 +6,14 @@ import { trucksRoutes } from './routes/trucks'
 import { placementsRoutes } from './routes/placements'
 import { dimensionsRoutes } from './routes/dimensions'
 import { demoRoutes } from './routes/demo'
+import { itemsRoutes } from './routes/items'
 
 const app = new Hono()
 
 // CORS設定
 app.use('/*', cors({
   origin: ['http://localhost:3000', 'http://localhost:3001'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowHeaders: ['Content-Type'],
 }))
 
@@ -27,6 +28,7 @@ app.route('/api/trucks', trucksRoutes)
 app.route('/api/placements', placementsRoutes)
 app.route('/api/dimensions', dimensionsRoutes)
 app.route('/api/demo', demoRoutes)
+app.route('/api/items', itemsRoutes)
 
 const port = Number(process.env.PORT) || 8080
 console.log(`Server is running on http://localhost:${port}`)

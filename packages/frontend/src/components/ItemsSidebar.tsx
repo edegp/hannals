@@ -2,15 +2,19 @@
 
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { PlacedItem } from '@/types'
+import { PlacedItem, ViewerMode } from '@/types'
 
 interface ItemsSidebarProps {
   items: PlacedItem[]
+  completedItems?: PlacedItem[]
   selectedItemId: string | null
   onItemSelect: (id: string | null) => void
   maxOrder: number
   isOpen?: boolean
   onToggle?: () => void
+  mode?: ViewerMode
+  onStatusChange?: (itemId: string) => void
+  onStatusUndo?: (itemId: string) => void
 }
 
 function ItemPreview({ item }: { item: PlacedItem }) {
@@ -28,9 +32,11 @@ function ItemPreview({ item }: { item: PlacedItem }) {
   )
 }
 
-export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder, isOpen = true, onToggle }: ItemsSidebarProps) {
-  const selectedItem = items.find(item => item.id === selectedItemId)
-  const visibleItems = items.filter(item => (item.loadOrder ?? item.order) <= maxOrder)
+export function ItemsSidebar({ items, completedItems = [], selectedItemId, onItemSelect, maxOrder, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
+  const allItems = [...items, ...completedItems]
+  const selectedItem = allItems.find(item => item.id === selectedItemId)
+  const getItemOrder = (item: PlacedItem) => (mode === 'delivery' ? item.order : (item.loadOrder ?? item.order))
+  const visibleItems = items.filter(item => getItemOrder(item) <= maxOrder)
 
   return (
     <>
@@ -123,31 +129,97 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder, is
       )}
 
       <div className="flex-1 overflow-y-auto p-2">
-        <h3 className="text-sm font-medium text-gray-400 px-2 mb-2">アイテム一覧</h3>
+        {/* 未完了アイテム */}
+        <h3 className="text-sm font-medium text-gray-400 px-2 mb-2">
+          {mode === 'loading' ? '積み込み待ち' : mode === 'delivery' ? '配送待ち' : 'アイテム一覧'}
+          {items.length > 0 && <span className="ml-1">({items.length})</span>}
+        </h3>
         {items.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onItemSelect(item.id)}
-            className={`w-full p-2 rounded-lg mb-1 text-left transition-colors ${
-              item.id === selectedItemId
-                ? 'bg-blue-600 text-white'
-                : (item.loadOrder ?? item.order) <= maxOrder
-                ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                : 'bg-gray-800/50 text-gray-500'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-medium truncate">{item.name || item.id}</span>
-              <span className="text-xs ml-2">#{item.loadOrder ?? item.order}</span>
-            </div>
-            {item.destination && (
-              <div className="text-xs text-yellow-400 truncate">{item.destination}</div>
+          <div key={item.id} className="mb-1">
+            <button
+              onClick={() => onItemSelect(item.id)}
+              className={`w-full p-2 rounded-lg text-left transition-colors ${
+                item.id === selectedItemId
+                  ? 'bg-blue-600 text-white'
+                  : getItemOrder(item) <= maxOrder
+                  ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  : 'bg-gray-800/50 text-gray-500'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium truncate">{item.name || item.id}</span>
+                <span className="text-xs ml-2">
+                  #{getItemOrder(item)}
+                </span>
+              </div>
+              {item.destination && (
+                <div className="text-xs text-yellow-400 truncate">{item.destination}</div>
+              )}
+              <div className="text-xs mt-1 opacity-70">
+                {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg {item.fragile && '🔴'}
+              </div>
+            </button>
+            {mode && onStatusChange && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onStatusChange(item.id)
+                }}
+                className={`w-full mt-1 py-1.5 rounded text-sm font-medium transition-colors ${
+                  mode === 'loading'
+                    ? 'bg-green-600 hover:bg-green-500 text-white'
+                    : 'bg-orange-600 hover:bg-orange-500 text-white'
+                }`}
+              >
+                {mode === 'loading' ? '積み込み完了' : '配送完了'}
+              </button>
             )}
-            <div className="text-xs mt-1 opacity-70">
-              {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg {item.fragile && '🔴'}
-            </div>
-          </button>
+          </div>
         ))}
+
+        {/* 完了済みアイテム */}
+        {completedItems.length > 0 && (
+          <>
+            <h3 className="text-sm font-medium text-gray-400 px-2 mb-2 mt-4 border-t border-gray-700 pt-4">
+              {mode === 'loading' ? '積み込み済み' : mode === 'delivery' ? '配送済み' : '完了'}
+              <span className="ml-1">({completedItems.length})</span>
+            </h3>
+            {completedItems.map((item) => (
+              <div key={item.id} className="mb-1">
+                <button
+                  onClick={() => onItemSelect(item.id)}
+                  className={`w-full p-2 rounded-lg text-left transition-colors ${
+                    item.id === selectedItemId
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800/50 text-gray-500 hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium truncate">{item.name || item.id}</span>
+                    <span className="text-xs ml-2 text-green-400">✓</span>
+                  </div>
+                  {item.destination && (
+                    <div className="text-xs text-yellow-400/50 truncate">{item.destination}</div>
+                  )}
+                  <div className="text-xs mt-1 opacity-50">
+                    {item.x_mm}×{item.y_mm}×{item.z_mm}mm / {item.weight_kg}kg
+                  </div>
+                </button>
+                {mode && onStatusUndo && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onStatusUndo(item.id)
+                    }}
+                    className="w-full mt-1 py-1.5 rounded text-sm font-medium transition-colors bg-gray-600 hover:bg-gray-500 text-white"
+                  >
+                    {mode === 'loading' ? '積み込み取消' : '配送取消'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        )}
       </div>
       </div>
     </>

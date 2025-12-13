@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 interface TruckSelectorProps {
   selectedTruck: Truck | null
   onSelect: (truck: Truck) => void
-  onAddNew: () => void
+  onAddNew?: () => void
 }
 
 export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelectorProps) {
@@ -86,18 +86,20 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 w-80 bg-gray-800 border border-gray-600 rounded shadow-lg z-50">
           {/* 新規追加ボタン */}
-          <button
-            onClick={() => {
-              setIsOpen(false)
-              onAddNew()
-            }}
-            className="w-full px-4 py-3 text-left text-blue-400 hover:bg-gray-700 flex items-center gap-2 border-b border-gray-600"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>新しい荷台を登録</span>
-          </button>
+          {onAddNew && (
+            <button
+              onClick={() => {
+                setIsOpen(false)
+                onAddNew()
+              }}
+              className="w-full px-4 py-3 text-left text-blue-400 hover:bg-gray-700 flex items-center gap-2 border-b border-gray-600"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>新しい荷台を登録</span>
+            </button>
+          )}
 
           {/* 荷台リスト */}
           {trucks.length === 0 ? (
@@ -113,9 +115,7 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
                     onSelect(truck)
                     setIsOpen(false)
                   }}
-                  className={`px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center justify-between ${
-                    selectedTruck?.id === truck.id ? 'bg-gray-700' : ''
-                  }`}
+                  className={`px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center justify-between ${selectedTruck?.id === truck.id ? 'bg-gray-700' : ''}`}
                 >
                   <div>
                     <div className="text-white">{truck.name}</div>

@@ -44,8 +44,15 @@ export interface PlacedItem extends Item {
   posY: number
   posZ: number
   rotation: number
-  loadOrder?: number  // 積み込み順番（1から始まる）
+  loadOrder?: number    // 積み込み順番（1から始まる）
+  isLoaded?: boolean    // 積み込み済み
+  loadedAt?: string     // 積み込み日時
+  isDelivered?: boolean // 配送済み
+  deliveredAt?: string  // 配送日時
 }
+
+// 画面モード
+export type ViewerMode = 'loading' | 'delivery'
 
 // クリック位置
 export interface ClickPoint {
