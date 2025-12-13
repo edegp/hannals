@@ -20,7 +20,10 @@ export interface Placement {
   id: string
   truckId: string
   truck?: Truck
-  items: PlacedItem[]
+  items?: PlacedItem[]  // 一覧取得時は含まれない
+  _count?: {
+    items: number
+  }
   createdAt: string
 }
 
@@ -44,13 +47,14 @@ export interface PlacedItem extends Item {
   posY: number
   posZ: number
   rotation: number
-  loadOrder?: number    // 積み込み順番（1から始まる）
-  isLoaded?: boolean    // 積み込み済み
-  loadedAt?: string     // 積み込み日時
-  isDelivered?: boolean // 配送済み
-  deliveredAt?: string  // 配送日時
-  objData?: string      // 3DモデルOBJデータ
-  mtlData?: string | null // 3DモデルMTLデータ
+  loadOrder?: number | null    // 積み込み順番（1から始まる）
+  isLoaded?: boolean            // 積み込み済み
+  loadedAt?: string | null      // 積み込み日時
+  isDelivered?: boolean         // 配送済み
+  deliveredAt?: string | null    // 配送日時
+  objData?: string | null        // 3DモデルOBJデータ
+  mtlData?: string | null        // 3DモデルMTLデータ
+  itemId?: string               // 外部ID（ユーザー指定、PrismaのitemIdフィールド）
 }
 
 // 画面モード
