@@ -275,21 +275,23 @@ export default function LoadingPage() {
 
         {/* 3Dビューアー: 積み込み済みアイテムを表示 */}
         <div className="flex-1 relative overflow-hidden">
-          <CargoViewer
-            objUrl={objUrl}
-            mtlUrl={mtlUrl}
-            placedItems={loadedItems}
-            selectedItemId={selectedItemId}
-            onItemSelect={setSelectedItemId}
-            maxOrder={maxOrder}
-            cargoArea={cargoArea}
-            entrancePoint={null}
-            entranceDirection={entranceDirection}
-            isSelectingEntrance={false}
-            onEntranceClick={() => {}}
-            onCargoAreaDetected={() => {}}
-            className="w-full h-full"
-          />
+          {objUrl && (
+            <CargoViewer
+              objUrl={objUrl}
+              mtlUrl={mtlUrl}
+              placedItems={loadedItems}
+              selectedItemId={selectedItemId}
+              onItemSelect={setSelectedItemId}
+              maxOrder={maxOrder}
+              cargoArea={cargoArea}
+              entrancePoint={null}
+              entranceDirection={entranceDirection}
+              isSelectingEntrance={false}
+              onEntranceClick={() => { }}
+              onCargoAreaDetected={() => { }}
+              className="w-full h-full"
+            />
+          )}
         </div>
 
         {/* スライダー */}

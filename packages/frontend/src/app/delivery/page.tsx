@@ -231,21 +231,23 @@ export default function DeliveryPage() {
 
         {/* 3Dビューアー: 配送待ちアイテム（まだトラックに残っているもの） */}
         <div className="flex-1 relative overflow-hidden">
-          <CargoViewer
-            objUrl={objUrl}
-            mtlUrl={mtlUrl}
-            placedItems={pendingDeliveryItems}
-            selectedItemId={selectedItemId}
-            onItemSelect={setSelectedItemId}
-            maxOrder={maxOrder}
-            cargoArea={cargoArea}
-            entrancePoint={null}
-            entranceDirection={entranceDirection}
-            isSelectingEntrance={false}
-            onEntranceClick={() => {}}
-            onCargoAreaDetected={() => {}}
-            className="w-full h-full"
-          />
+          {objUrl && (
+            <CargoViewer
+              objUrl={objUrl}
+              mtlUrl={mtlUrl}
+              placedItems={pendingDeliveryItems}
+              selectedItemId={selectedItemId}
+              onItemSelect={setSelectedItemId}
+              maxOrder={maxOrder}
+              cargoArea={cargoArea}
+              entrancePoint={null}
+              entranceDirection={entranceDirection}
+              isSelectingEntrance={false}
+              onEntranceClick={() => { }}
+              onCargoAreaDetected={() => { }}
+              className="w-full h-full"
+            />
+          )}
         </div>
 
         {/* スライダー */}
