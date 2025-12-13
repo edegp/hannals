@@ -44,62 +44,26 @@ export default function DeparturesPage() {
       setIsLoading(true)
       setError(null)
       try {
-        console.log('[Departures] API URL:', API_URL)
-        console.log('[Departures] 配置一覧を取得開始...')
-        
         // 配置一覧を取得
         const placementsResponse = await fetch(`${API_URL}/api/placements`)
-        console.log('[Departures] 配置一覧レスポンス:', {
-          status: placementsResponse.status,
-          ok: placementsResponse.ok,
-          url: `${API_URL}/api/placements`
-        })
         
         if (!placementsResponse.ok) {
           throw new Error('配置一覧の取得に失敗しました')
         }
         const placements: Placement[] = await placementsResponse.json()
-        console.log('[Departures] 取得した配置一覧:', placements)
-        console.log('[Departures] 配置数:', placements.length)
 
         // 各配置の詳細を取得（itemsのステータスを含む）
-        console.log('[Departures] 各配置の詳細を取得開始...')
         const departurePromises = placements.map(async (placement) => {
-          console.log(`[Departures] 配置詳細を取得: ${placement.id}`)
           const detailResponse = await fetch(`${API_URL}/api/placements/${placement.id}`)
-          console.log(`[Departures] 配置詳細レスポンス (${placement.id}):`, {
-            status: detailResponse.status,
-            ok: detailResponse.ok
-          })
           
           if (!detailResponse.ok) {
-            console.warn(`[Departures] 配置詳細の取得に失敗: ${placement.id}`)
             return null
           }
           const detail: Placement = await detailResponse.json()
-          console.log(`[Departures] 配置詳細データ (${placement.id}):`, {
-            id: detail.id,
-            truckId: detail.truckId,
-            truckName: detail.truck?.name,
-            itemsCount: detail.items?.length || 0,
-            hasItems: !!detail.items,
-            items: detail.items?.slice(0, 3).map(item => ({
-              id: item.id,
-              itemId: item.itemId,
-              order: item.order,
-              isLoaded: item.isLoaded,
-              isDelivered: item.isDelivered
-            }))
-          })
           
           // itemsが存在しない場合は空配列として扱う
           if (!detail.items) {
-            console.warn(`[Departures] 配置にitemsプロパティがありません: ${placement.id}`)
             detail.items = []
-          }
-          
-          if (detail.items.length === 0) {
-            console.warn(`[Departures] 配置に荷物が含まれていません（荷物0個として表示）: ${placement.id}`)
           }
           
           return detail
@@ -115,32 +79,15 @@ export default function DeparturesPage() {
             return true
           }
         )
-        console.log('[Departures] 有効な配置詳細数:', placementDetails.length)
-        console.log('[Departures] 各配置の荷物数:', placementDetails.map(p => ({
-          id: p.id,
-          itemCount: p.items?.length || 0
-        })))
 
         // ステータスを判定してDeparture型に変換
-        console.log('[Departures] ステータス判定とDeparture型への変換開始...')
         const departureList: Departure[] = placementDetails.map((placement) => {
           const items = placement.items || []
           const itemCount = items.length
-          console.log(`[Departures] 配置 ${placement.id} の処理:`, {
-            itemCount,
-            itemsSample: items.slice(0, 3).map(item => ({
-              id: item.id,
-              itemId: item.itemId,
-              order: item.order,
-              isLoaded: item.isLoaded,
-              isDelivered: item.isDelivered
-            }))
-          })
 
           // 配送先数（orderのユニークな値の数）
           const uniqueOrders = new Set(items.map((item) => item.order))
           const estimatedStops = uniqueOrders.size
-          console.log(`[Departures] 配置 ${placement.id} の配送先数:`, estimatedStops, 'ユニークなorder:', Array.from(uniqueOrders))
 
           // ステータス判定
           // - 全ての荷物が積み込み済み → 'loaded'
@@ -150,18 +97,6 @@ export default function DeparturesPage() {
           const allLoaded = items.length > 0 && items.every((item) => item.isLoaded === true)
           const allDelivered = items.length > 0 && items.every((item) => item.isDelivered === true)
           const someLoaded = items.some((item) => item.isLoaded === true)
-          
-          const loadedCount = items.filter((item) => item.isLoaded === true).length
-          const deliveredCount = items.filter((item) => item.isDelivered === true).length
-          
-          console.log(`[Departures] 配置 ${placement.id} のステータス判定:`, {
-            allLoaded,
-            allDelivered,
-            someLoaded,
-            loadedCount,
-            deliveredCount,
-            totalItems: items.length
-          })
 
           let status: DepartureStatus
           if (allDelivered) {
@@ -173,7 +108,6 @@ export default function DeparturesPage() {
           } else {
             status = 'loading'
           }
-          console.log(`[Departures] 配置 ${placement.id} の判定されたステータス:`, status)
 
           // 出発予定時刻（createdAtから計算、またはデフォルト値）
           const createdAt = new Date(placement.createdAt)
@@ -181,12 +115,8 @@ export default function DeparturesPage() {
             hour: '2-digit',
             minute: '2-digit',
           })
-          console.log(`[Departures] 配置 ${placement.id} の出発予定時刻:`, {
-            createdAt: placement.createdAt,
-            departureTime
-          })
 
-          const departure: Departure = {
+          return {
             binId: placement.id,
             vehicleName: placement.truck?.name || '未設定の車両',
             departureTime,
@@ -195,33 +125,19 @@ export default function DeparturesPage() {
             itemCount,
             driverName: '山田太郎', // TODO: 実際のドライバー情報を取得
           }
-          
-          console.log(`[Departures] 変換されたDeparture (${placement.id}):`, departure)
-          return departure
         })
 
         // 出発予定時刻でソート
-        console.log('[Departures] ソート前のdepartureList:', departureList)
         departureList.sort((a, b) => {
           const timeA = a.departureTime.replace(':', '')
           const timeB = b.departureTime.replace(':', '')
           return timeA.localeCompare(timeB)
         })
-        console.log('[Departures] ソート後のdepartureList:', departureList)
-        console.log('[Departures] 最終的な出発便数:', departureList.length)
 
         setDepartures(departureList)
-        console.log('[Departures] データ取得完了')
       } catch (err) {
-        console.error('[Departures] エラーが発生しました:', err)
-        console.error('[Departures] エラーの詳細:', {
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : undefined,
-          name: err instanceof Error ? err.name : undefined
-        })
         setError(err instanceof Error ? err.message : 'データの取得に失敗しました')
       } finally {
-        console.log('[Departures] ローディング完了')
         setIsLoading(false)
       }
     }
