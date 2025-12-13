@@ -24,7 +24,7 @@ export default function DeliveryPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // 荷台のOBJ/MTL URLを生成
-  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : null
+  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : undefined
   const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : undefined
 
   // 荷台選択時の処理
