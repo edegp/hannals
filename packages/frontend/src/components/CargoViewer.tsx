@@ -46,6 +46,9 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
               roughness: 0.5,
               metalness: 0.1,
               side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.3,
+              depthWrite: false,
             })
           }
         })
