@@ -86,7 +86,7 @@ export default function LoadingWorkPage() {
 
   // Split items into loaded (up to current) and pending
   const loadedItems = placedItems.filter(i => (i.loadOrder ?? i.order) < currentLoadOrder)
-  const pendingItems = placedItems.filter(i => (i.loadOrder ?? i.order) >= currentLoadOrder)
+  const pendingItems = placedItems.filter(i => (i.loadOrder ?? i.order) > currentLoadOrder)
 
   return (
     <div className="h-screen flex flex-col bg-background">
