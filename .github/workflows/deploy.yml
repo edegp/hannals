@@ -66,6 +66,10 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      - name: Prepare deploy directory
+        run: |
+          ssh ubuntu@${{ secrets.SERVER_IP }} "sudo mkdir -p /opt/hannals && sudo chown -R ubuntu:ubuntu /opt/hannals"
+
       - name: Deploy to server
         run: |
           rsync -avz --delete \
@@ -74,11 +78,11 @@ jobs:
             --exclude '.env*' \
             --exclude 'uploads' \
             --exclude '.next/cache' \
-            ./ root@${{ secrets.SERVER_IP }}:/opt/hannals/
+            ./ ubuntu@${{ secrets.SERVER_IP }}:/opt/hannals/
 
       - name: Setup env and restart services
         run: |
-          ssh root@${{ secrets.SERVER_IP }} << EOF
+          ssh ubuntu@${{ secrets.SERVER_IP }} << EOF
             cd /opt/hannals
 
             # Create .env file
@@ -92,7 +96,7 @@ jobs:
             pnpm --filter backend run db:generate
             pnpm --filter backend run build
             pnpm --filter frontend run build
-            systemctl restart hannals-backend
-            systemctl restart hannals-frontend
+            sudo systemctl restart hannals-backend
+            sudo systemctl restart hannals-frontend
             echo "Deploy completed at \$(date)"
           EOF
