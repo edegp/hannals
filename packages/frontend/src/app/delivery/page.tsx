@@ -88,10 +88,12 @@ export default function DeliveryPage() {
         }))
         setPlacedItems(itemsWithLoadedStatus)
 
-        // 各アイテムを積み込み済みとしてDBに更新
-        for (const item of result.items) {
-          await fetch(`${API_URL}/api/items/${item.id}/load`, { method: 'PATCH' })
-        }
+        // まとめて積み込み済みとしてDBに更新
+        await fetch(`${API_URL}/api/items/load`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemIds: result.items.map((item: PlacedItem) => item.id) }),
+        })
 
         const maxItemOrder = Math.max(...result.items.map((i: PlacedItem) => i.order), 1)
         setMaxOrder(maxItemOrder)
