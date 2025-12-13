@@ -37,6 +37,7 @@ export default function Home() {
   const [showDimensionExtractor, setShowDimensionExtractor] = useState(false)
   const [showCsvImporter, setShowCsvImporter] = useState(false)
   const [inputItems, setInputItems] = useState<Item[]>(sampleItems)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // 荷台のOBJ/MTL URLを生成
   const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : '/viewer/trunkVoxel_cleaned.obj'
@@ -314,6 +315,8 @@ export default function Home() {
             selectedItemId={selectedItemId}
             onItemSelect={setSelectedItemId}
             maxOrder={maxOrder}
+            isOpen={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
           />
         )}
       </div>

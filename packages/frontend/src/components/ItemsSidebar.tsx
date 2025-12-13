@@ -9,6 +9,8 @@ interface ItemsSidebarProps {
   selectedItemId: string | null
   onItemSelect: (id: string | null) => void
   maxOrder: number
+  isOpen?: boolean
+  onToggle?: () => void
 }
 
 function ItemPreview({ item }: { item: PlacedItem }) {
@@ -26,23 +28,45 @@ function ItemPreview({ item }: { item: PlacedItem }) {
   )
 }
 
-export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: ItemsSidebarProps) {
+export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder, isOpen = true, onToggle }: ItemsSidebarProps) {
   const selectedItem = items.find(item => item.id === selectedItemId)
   const visibleItems = items.filter(item => (item.loadOrder ?? item.order) <= maxOrder)
 
   return (
-    <div className="w-80 h-full bg-gray-900 border-l border-gray-700 flex flex-col">
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white">アイテム情報</h2>
-        <p className="text-sm text-gray-400">
-          表示中: {visibleItems.length} / {items.length}
-        </p>
-      </div>
+    <>
+      {/* モバイル用トグルボタン */}
+      <button
+        onClick={onToggle}
+        className="lg:hidden fixed bottom-20 right-4 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg"
+      >
+        {isOpen ? '✕' : '📋'}
+      </button>
 
-      {selectedItem ? (
+      {/* サイドバー */}
+      <div className={`
+        fixed lg:relative right-0 top-0 h-full z-40
+        w-80 bg-gray-900 border-l border-gray-700 flex flex-col
+        transform transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+      `}>
         <div className="p-4 border-b border-gray-700">
-          <h3 className="font-medium text-white mb-1">{selectedItem.name || selectedItem.id}</h3>
-          <p className="text-xs text-gray-500 mb-3">{selectedItem.id}</p>
+          <h2 className="text-lg font-semibold text-white">アイテム情報</h2>
+          <p className="text-sm text-gray-400">
+            表示中: {visibleItems.length} / {items.length}
+          </p>
+        </div>
+
+        {selectedItem ? (
+          <div className="p-4 border-b border-gray-700">
+            {/* 戻るボタン */}
+            <button
+              onClick={() => onItemSelect(null)}
+              className="flex items-center text-blue-400 hover:text-blue-300 mb-3 text-sm"
+            >
+              ← 一覧に戻る
+            </button>
+            <h3 className="font-medium text-white mb-1">{selectedItem.name || selectedItem.id}</h3>
+            <p className="text-xs text-gray-500 mb-3">{selectedItem.id}</p>
 
           <div className="h-32 bg-gray-800 rounded-lg mb-3">
             <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
@@ -125,6 +149,7 @@ export function ItemsSidebar({ items, selectedItemId, onItemSelect, maxOrder }: 
           </button>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   )
 }
