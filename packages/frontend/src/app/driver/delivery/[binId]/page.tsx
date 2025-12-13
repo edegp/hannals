@@ -56,7 +56,8 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
         }))
 
         setStops(stopList)
-        setSelectedStop(1)
+        // orderの最小値（最初の配送先）を初期値として設定
+        setSelectedStop(uniqueStops.length > 0 ? uniqueStops[0] : 1)
       }
     } catch (error) {
       console.error('Failed to load delivery plan:', error)
@@ -76,28 +77,23 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
 
   // Stop完了処理
   const handleCompleteStop = () => {
-    if (selectedStop < stops.length) {
-      // 現在のStopを完了に更新
-      const updatedStops = stops.map(stop =>
-        stop.stopNumber === selectedStop
-          ? { ...stop, status: 'completed' as const }
-          : stop
-      )
-      setStops(updatedStops)
+    // 現在のStopを完了に更新
+    const updatedStops = stops.map(stop =>
+      stop.stopNumber === selectedStop
+        ? { ...stop, status: 'completed' as const }
+        : stop
+    )
+    setStops(updatedStops)
 
-      // 次のStopへ移動
-      const nextStop = selectedStop + 1
+    // order順で次のStopを見つける
+    const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
+    if (currentIndex >= 0 && currentIndex < stops.length - 1) {
+      // 次のStopへ移動（order順）
+      const nextStop = stops[currentIndex + 1].stopNumber
       setSelectedStop(nextStop)
       setSelectedItemId(null)
-    } else {
-      // 最後のStopを完了
-      const updatedStops = stops.map(stop =>
-        stop.stopNumber === selectedStop
-          ? { ...stop, status: 'completed' as const }
-          : stop
-      )
-      setStops(updatedStops)
     }
+    // 最後のStopの場合は何もしない（完了のみ）
   }
 
   // Stop選択処理
@@ -294,11 +290,16 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
                     : `Stop ${selectedStop} 完了`}
                 </button>
 
-                {selectedStop < stops.length && currentStop?.status !== 'completed' && (
-                  <span className="text-gray-400 text-sm">
-                    次へ進むと Stop {selectedStop + 1} に移動します
-                  </span>
-                )}
+                {(() => {
+                  const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
+                  const hasNextStop = currentIndex >= 0 && currentIndex < stops.length - 1
+                  const nextStopNumber = hasNextStop ? stops[currentIndex + 1].stopNumber : null
+                  return hasNextStop && currentStop?.status !== 'completed' && (
+                    <span className="text-gray-400 text-sm">
+                      次へ進むと Stop {nextStopNumber} に移動します
+                    </span>
+                  )
+                })()}
               </div>
             ) : (
               <div className="text-center">
