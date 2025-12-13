@@ -76,14 +76,23 @@ jobs:
             --exclude '.next/cache' \
             ./ root@${{ secrets.SERVER_IP }}:/opt/hannals/
 
-      - name: Restart services
+      - name: Setup env and restart services
         run: |
-          ssh root@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh root@${{ secrets.SERVER_IP }} << EOF
             cd /opt/hannals
+
+            # Create .env file
+            cat > packages/backend/.env << 'ENVFILE'
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SAKURA_API_KEY=${{ secrets.SAKURA_API_KEY }}
+          PORT=8080
+          ENVFILE
+
             pnpm install --frozen-lockfile
+            pnpm --filter backend run db:generate
             pnpm --filter backend run build
             pnpm --filter frontend run build
             systemctl restart hannals-backend
             systemctl restart hannals-frontend
-            echo "Deploy completed at $(date)"
+            echo "Deploy completed at \$(date)"
           EOF
