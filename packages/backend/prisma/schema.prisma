@@ -47,7 +47,8 @@ model PlacedItem {
   x_mm        Int
   y_mm        Int
   z_mm        Int
-  order       Int       // 積み込み順
+  order       Int       // 配送順（1=最初に配送）
+  loadOrder   Int?      // 積み込み順（1=最後に積む）
   weight_kg   Float
   fragile     Boolean   @default(false)
   rot_xy      Boolean   @default(false)
@@ -56,6 +57,14 @@ model PlacedItem {
   posY        Float
   posZ        Float
   rotation    Float     @default(0)
+  // 追加情報
+  name        String?   // 品目名
+  destination String?   // 配送先
+  // ステータス
+  isLoaded    Boolean   @default(false)  // 積み込み済み
+  loadedAt    DateTime?                   // 積み込み日時
+  isDelivered Boolean   @default(false)  // 配送済み
+  deliveredAt DateTime?                   // 配送日時
   // リレーション
   placement   Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
   placementId String
