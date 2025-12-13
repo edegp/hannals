@@ -1,0 +1,228 @@
+'use client'
+
+import { useState } from 'react'
+
+// 便のステータス
+type DepartureStatus = 'loading' | 'loaded' | 'departed' | 'completed'
+
+// 便の型定義
+interface Departure {
+  binId: string
+  vehicleName: string
+  departureTime: string
+  estimatedStops: number
+  status: DepartureStatus
+  itemCount: number
+  driverName: string
+}
+
+// デモ用の便データ
+const DEMO_DEPARTURES: Departure[] = [
+  {
+    binId: 'BIN-20251213-001',
+    vehicleName: '2トントラック（車両A）',
+    departureTime: '08:00',
+    estimatedStops: 5,
+    status: 'loaded',
+    itemCount: 15,
+    driverName: '山田太郎',
+  },
+  {
+    binId: 'BIN-20251213-002',
+    vehicleName: '4トントラック（車両B）',
+    departureTime: '09:30',
+    estimatedStops: 8,
+    status: 'loaded',
+    itemCount: 32,
+    driverName: '山田太郎',
+  },
+  {
+    binId: 'BIN-20251213-003',
+    vehicleName: '2トントラック（車両C）',
+    departureTime: '13:00',
+    estimatedStops: 4,
+    status: 'loading',
+    itemCount: 12,
+    driverName: '山田太郎',
+  },
+  {
+    binId: 'BIN-20251213-004',
+    vehicleName: '10トントラック（車両D）',
+    departureTime: '14:30',
+    estimatedStops: 12,
+    status: 'loading',
+    itemCount: 58,
+    driverName: '山田太郎',
+  },
+]
+
+export default function DeparturesPage() {
+  const [departures] = useState<Departure[]>(DEMO_DEPARTURES)
+
+  // ステータスの表示名と色を取得
+  const getStatusInfo = (status: DepartureStatus) => {
+    switch (status) {
+      case 'loading':
+        return { label: '積み込み中', color: 'bg-yellow-500', textColor: 'text-yellow-500' }
+      case 'loaded':
+        return { label: '積み込み完了', color: 'bg-green-500', textColor: 'text-green-500' }
+      case 'departed':
+        return { label: '出発済み', color: 'bg-blue-500', textColor: 'text-blue-500' }
+      case 'completed':
+        return { label: '配送完了', color: 'bg-gray-500', textColor: 'text-gray-500' }
+    }
+  }
+
+  // 出発可能かどうか
+  const canDepart = (status: DepartureStatus) => {
+    return status === 'loaded'
+  }
+
+  // 配送画面へ遷移
+  const handleStartDelivery = (binId: string) => {
+    window.location.href = `/driver/delivery/${binId}`
+  }
+
+  // 現在時刻を取得
+  const currentTime = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  const currentDate = new Date().toLocaleDateString('ja-JP', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    weekday: 'long' 
+  })
+
+  return (
+    <div className="min-h-screen bg-gray-900">
+      {/* ヘッダー */}
+      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">出発便一覧（本日の担当）</h1>
+              <p className="text-sm text-gray-400 mt-1">ドライバー向け</p>
+            </div>
+            
+            <div className="text-right">
+              <div className="text-white font-semibold">{currentDate}</div>
+              <div className="text-gray-400 text-sm mt-1">現在時刻: {currentTime}</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* メインコンテンツ */}
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* 注意事項 */}
+        <div className="bg-blue-900 border border-blue-700 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="text-blue-400 text-xl">ℹ️</div>
+            <div className="text-blue-200 text-sm">
+              <p className="font-semibold mb-1">配送開始前の確認事項</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>積み込み完了の便のみ出発できます</li>
+                <li>出発前に車両の安全確認を行ってください</li>
+                <li>配送中は各Stop単位で荷物の位置を確認できます</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* 便一覧 */}
+        <div className="space-y-4">
+          {departures.map((departure) => {
+            const statusInfo = getStatusInfo(departure.status)
+            const isDepartable = canDepart(departure.status)
+
+            return (
+              <div
+                key={departure.binId}
+                className={`bg-gray-800 border rounded-lg p-6 ${
+                  isDepartable ? 'border-green-500' : 'border-gray-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4 mb-3">
+                      <h2 className="text-xl font-bold text-white">{departure.vehicleName}</h2>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.color} text-white`}>
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <div className="text-gray-400 mb-1">便ID</div>
+                        <div className="text-white font-mono">{departure.binId}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400 mb-1">出発予定時刻</div>
+                        <div className="text-white font-semibold">{departure.departureTime}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400 mb-1">配送先</div>
+                        <div className="text-white">{departure.estimatedStops}箇所</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400 mb-1">荷物数</div>
+                        <div className="text-white">{departure.itemCount}個</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="ml-6">
+                    {isDepartable ? (
+                      <button
+                        onClick={() => handleStartDelivery(departure.binId)}
+                        className="px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-500 font-bold text-lg shadow-lg"
+                      >
+                        配送画面を開く →
+                      </button>
+                    ) : (
+                      <div className="px-8 py-4 bg-gray-700 text-gray-400 rounded-lg cursor-not-allowed text-center">
+                        <div className="text-sm">🔒</div>
+                        <div className="text-xs mt-1">積み込み中</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 進行状況（積み込み中の場合） */}
+                {departure.status === 'loading' && (
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="animate-spin h-4 w-4 border-2 border-yellow-400 border-t-transparent rounded-full"></div>
+                      <span>倉庫スタッフが積み込み作業中です...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 便が0件の場合 */}
+        {departures.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📦</div>
+            <div className="text-xl text-gray-400">本日の担当便はありません</div>
+          </div>
+        )}
+
+        {/* フッター情報 */}
+        <div className="mt-8 p-4 bg-gray-800 rounded-lg border border-gray-700">
+          <div className="text-sm text-gray-400">
+            <p className="font-semibold mb-2">お知らせ</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>配送完了後は必ず報告を行ってください</li>
+              <li>荷物の破損や配送先不在の場合は速やかに連絡してください</li>
+              <li>安全運転を心がけてください</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+
