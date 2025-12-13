@@ -40,7 +40,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // 荷台のOBJ/MTL URLを生成
-  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : null
+  const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : undefined
   const mtlUrl = selectedTruck?.mtlFilePath ? `${API_URL}/api/trucks/${selectedTruck.id}/mtl` : undefined
 
   // 荷台選択時の処理
@@ -311,21 +311,27 @@ export default function Home() {
 
         {/* 3Dビューアー */}
         <div className="flex-1 relative overflow-hidden">
-          <CargoViewer
-            objUrl={objUrl}
-            mtlUrl={mtlUrl}
-            placedItems={placedItems}
-            selectedItemId={selectedItemId}
-            onItemSelect={setSelectedItemId}
-            maxOrder={maxOrder}
-            cargoArea={cargoArea}
-            entrancePoint={entrancePoint}
-            entranceDirection={entranceDirection}
-            isSelectingEntrance={isSelectingEntrance}
-            onEntranceClick={handleEntranceClick}
-            onCargoAreaDetected={handleCargoAreaDetected}
-            className="w-full h-full"
-          />
+          {objUrl ? (
+            <CargoViewer
+              objUrl={objUrl}
+              mtlUrl={mtlUrl}
+              placedItems={placedItems}
+              selectedItemId={selectedItemId}
+              onItemSelect={setSelectedItemId}
+              maxOrder={maxOrder}
+              cargoArea={cargoArea}
+              entrancePoint={entrancePoint}
+              entranceDirection={entranceDirection}
+              isSelectingEntrance={isSelectingEntrance}
+              onEntranceClick={handleEntranceClick}
+              onCargoAreaDetected={handleCargoAreaDetected}
+              className="w-full h-full"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-400">
+              荷台を選択してください
+            </div>
+          )}
         </div>
 
         {/* スライダー */}
