@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
-import { Prisma } from '@prisma/client'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type JsonValue = any
 import { prisma } from '../lib/prisma'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -138,7 +139,7 @@ placementsRoutes.post('/', async (c) => {
   const placement = await prisma.placement.create({
     data: {
       truckId,
-      resultData: apiResponse as unknown as Prisma.InputJsonValue,
+      resultData: apiResponse as JsonValue,
       items: {
         create: apiResponse.placedItems.map((item) => ({
           itemId: item.id,
@@ -325,7 +326,7 @@ placementsRoutes.post('/mock/calculate', async (c) => {
         ...apiResponse,
         mockGenerated: true,
         targetLoadRate,
-      } as unknown as Prisma.InputJsonValue,
+      } as JsonValue,
       items: {
         create: apiResponse.placedItems.map((item) => ({
           itemId: item.id,
