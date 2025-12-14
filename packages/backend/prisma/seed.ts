@@ -73,29 +73,33 @@ async function main() {
   writeFileSync(objFilePath, objContent)
   console.log(`Created OBJ file: ${objFilePath}`)
 
-  // 既存の2tトラックを削除
-  await prisma.truck.deleteMany({
+  // 既存の2tトラックをチェック
+  const existingTruck = await prisma.truck.findFirst({
     where: { name: TRUCK_2T.name }
   })
 
-  // 2tトラックをDBに登録
-  const truck = await prisma.truck.create({
-    data: {
-      name: TRUCK_2T.name,
-      objFilePath: `uploads/${objFileName}`,
-      entranceDirection: 'back',
-      minX: 0,
-      minY: 0,
-      minZ: 0,
-      maxX: TRUCK_2T.width,
-      maxY: TRUCK_2T.depth,
-      maxZ: TRUCK_2T.height,
-    }
-  })
+  if (existingTruck) {
+    console.log(`Truck already exists: ${existingTruck.name} (${existingTruck.id}) - skipping`)
+  } else {
+    // 2tトラックをDBに登録
+    const truck = await prisma.truck.create({
+      data: {
+        name: TRUCK_2T.name,
+        objFilePath: `uploads/${objFileName}`,
+        entranceDirection: 'back',
+        minX: 0,
+        minY: 0,
+        minZ: 0,
+        maxX: TRUCK_2T.width,
+        maxY: TRUCK_2T.depth,
+        maxZ: TRUCK_2T.height,
+      }
+    })
 
-  console.log(`Created truck: ${truck.name} (${truck.id})`)
-  console.log(`  Dimensions: ${TRUCK_2T.width}mm x ${TRUCK_2T.depth}mm x ${TRUCK_2T.height}mm`)
-  console.log(`  Volume: ${(TRUCK_2T.width * TRUCK_2T.depth * TRUCK_2T.height / 1e9).toFixed(2)} m³`)
+    console.log(`Created truck: ${truck.name} (${truck.id})`)
+    console.log(`  Dimensions: ${TRUCK_2T.width}mm x ${TRUCK_2T.depth}mm x ${TRUCK_2T.height}mm`)
+    console.log(`  Volume: ${(TRUCK_2T.width * TRUCK_2T.depth * TRUCK_2T.height / 1e9).toFixed(2)} m³`)
+  }
 
   console.log('Seeding completed!')
 }

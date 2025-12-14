@@ -30,13 +30,16 @@ model Truck {
 
 // 配置セッション
 model Placement {
-  id         String       @id @default(cuid())
-  truck      Truck        @relation(fields: [truckId], references: [id], onDelete: Cascade)
-  truckId    String
+  id           String       @id @default(cuid())
+  truck        Truck        @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  truckId      String
   // 外部APIからの配置結果
-  resultData Json?
-  createdAt  DateTime     @default(now())
-  items      PlacedItem[]
+  resultData   Json?
+  // ボクセル化されたトラックの3Dモデル（外部APIから取得）
+  voxelObjData String?      @db.Text
+  voxelMtlData String?      @db.Text
+  createdAt    DateTime     @default(now())
+  items        PlacedItem[]
 }
 
 // 配置済み荷物

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { CargoViewer } from '@/components/CargoViewer'
 import { ItemsSidebar } from '@/components/ItemsSidebar'
 import { TruckSelector } from '@/components/TruckSelector'
+import { TruckUploader } from '@/components/TruckUploader'
 import { CsvImporter } from '@/components/CsvImporter'
 import { PlacedItem, CargoArea, Item, Truck } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,7 @@ export default function LoadingPage() {
   const [entranceDirection, setEntranceDirection] = useState<EntranceDirection>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showCsvImporter, setShowCsvImporter] = useState(false)
+  const [showTruckUploader, setShowTruckUploader] = useState(false)
   const [inputItems, setInputItems] = useState<Item[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -78,18 +80,23 @@ export default function LoadingPage() {
 
     setIsLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/placements`, {
+      const response = await fetch(`${API_URL}/api/placements/calculate-v2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           truckId: selectedTruck.id,
           items: inputItems,
+          useMock: true, // TODO: 本番では外部APIを使用
         }),
       })
 
       if (response.ok) {
         const result = await response.json()
         setPlacedItems(result.placement.items)
+        // voxelObjDataがあれば保存（将来用）
+        if (result.placement.voxelObjData) {
+          console.log('Voxel OBJ data received:', result.placement.voxelObjData.length, 'bytes')
+        }
       }
     } catch (error) {
       console.error('Failed to place items:', error)
@@ -200,6 +207,7 @@ export default function LoadingPage() {
               <TruckSelector
                 selectedTruck={selectedTruck}
                 onSelect={handleTruckSelect}
+                onAddNew={() => setShowTruckUploader(true)}
               />
 
               {/* Navigation */}
@@ -317,6 +325,17 @@ export default function LoadingPage() {
         <CsvImporter
           onItemsImported={handleItemsImported}
           onClose={() => setShowCsvImporter(false)}
+        />
+      )}
+
+      {/* Truck Upload Modal */}
+      {showTruckUploader && (
+        <TruckUploader
+          onUpload={(truck) => {
+            handleTruckSelect(truck)
+            setShowTruckUploader(false)
+          }}
+          onCancel={() => setShowTruckUploader(false)}
         />
       )}
     </div>

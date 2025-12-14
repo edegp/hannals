@@ -131,3 +131,53 @@ itemsRoutes.patch('/:id/undeliver', async (c) => {
     return c.json({ error: 'Failed to update item' }, 500)
   }
 })
+
+// アイテムのOBJデータを取得
+itemsRoutes.get('/:id/obj', async (c) => {
+  const id = c.req.param('id')
+
+  const item = await prisma.placedItem.findUnique({
+    where: { id },
+    select: { objData: true },
+  })
+
+  if (!item) {
+    return c.json({ error: 'Item not found' }, 404)
+  }
+
+  if (!item.objData) {
+    return c.json({ error: 'OBJ data not available' }, 404)
+  }
+
+  return new Response(item.objData, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `inline; filename="${id}.obj"`,
+    },
+  })
+})
+
+// アイテムのMTLデータを取得
+itemsRoutes.get('/:id/mtl', async (c) => {
+  const id = c.req.param('id')
+
+  const item = await prisma.placedItem.findUnique({
+    where: { id },
+    select: { mtlData: true },
+  })
+
+  if (!item) {
+    return c.json({ error: 'Item not found' }, 404)
+  }
+
+  if (!item.mtlData) {
+    return c.json({ error: 'MTL data not available' }, 404)
+  }
+
+  return new Response(item.mtlData, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Content-Disposition': `inline; filename="${id}.mtl"`,
+    },
+  })
+})

@@ -24,4 +24,4 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
 
 EXPOSE 8080
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx prisma/seed.ts && node dist/index.js"]
