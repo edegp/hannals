@@ -96,7 +96,11 @@ jobs:
           ENVFILE
 
             pnpm install --frozen-lockfile
-            pnpm --filter backend run db:generate
+            cd packages/backend
+            npx prisma migrate deploy
+            npx prisma generate
+            pnpm db:seed
+            cd /opt/hannals
             pnpm --filter backend run build
             pnpm --filter frontend run build
             sudo systemctl restart hannals-backend

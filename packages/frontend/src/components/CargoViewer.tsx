@@ -116,6 +116,7 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
 interface PlacedItemBoxProps {
   item: PlacedItem
   isSelected: boolean
+  isHighlighted: boolean
   onClick: () => void
   visible: boolean
 }
@@ -195,7 +196,7 @@ function ItemModel({ objData, mtlData, scale: modelScale }: { objData: string, m
   return <primitive object={obj} />
 }
 
-function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProps) {
+function PlacedItemBox({ item, isSelected, isHighlighted, onClick, visible }: PlacedItemBoxProps) {
   const [isHovered, setIsHovered] = useState(false)
 
   if (!visible) return null
@@ -209,8 +210,8 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
   const posY = item.posY * scale
   const posZ = item.posZ * scale
 
-  // 色設定（より見やすい色）
-  const edgeColor = item.fragile ? '#ff0000' : isSelected ? '#00ff00' : isHovered ? '#00aaff' : '#0066ff'
+  // 色設定（より見やすい色）- ハイライト時は黄色
+  const edgeColor = item.fragile ? '#ff0000' : isSelected ? '#00ff00' : isHighlighted ? '#ffcc00' : isHovered ? '#00aaff' : '#0066ff'
 
   return (
     <group
@@ -225,8 +226,8 @@ function PlacedItemBox({ item, isSelected, onClick, visible }: PlacedItemBoxProp
           onPointerOut={() => setIsHovered(false)}
         >
           <ItemModel objData={item.objData} mtlData={item.mtlData} scale={scale} />
-          {/* 選択時のアウトライン */}
-          {(isSelected || isHovered) && (
+          {/* 選択・ハイライト時のアウトライン */}
+          {(isSelected || isHovered || isHighlighted) && (
             <mesh>
               <boxGeometry args={[width * 1.02, height * 1.02, depth * 1.02]} />
               <meshBasicMaterial
@@ -439,6 +440,7 @@ interface CargoViewerProps {
   mtlUrl?: string
   placedItems: PlacedItem[]
   selectedItemId: string | null
+  highlightedItemId?: string | null
   onItemSelect: (id: string | null) => void
   cargoArea: CargoArea | null
   entrancePoint?: ClickPoint
@@ -454,6 +456,7 @@ export function CargoViewer({
   mtlUrl,
   placedItems,
   selectedItemId,
+  highlightedItemId,
   onItemSelect,
   cargoArea,
   entranceDirection,
@@ -484,6 +487,7 @@ export function CargoViewer({
               key={item.id}
               item={item}
               isSelected={item.id === selectedItemId}
+              isHighlighted={item.id === highlightedItemId}
               onClick={() => onItemSelect(item.id)}
               visible={true}
             />
