@@ -4,7 +4,6 @@ import { Suspense, useState, useCallback, useEffect } from 'react'
 import { Canvas, useThree, ThreeEvent } from '@react-three/fiber'
 import { OrbitControls, Environment, Line, Html, Edges } from '@react-three/drei'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import * as THREE from 'three'
 import { PlacedItem, ClickPoint, CargoArea } from '@/types'
 
@@ -26,20 +25,33 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
       try {
         const objLoader = new OBJLoader()
 
-        if (mtlUrl) {
-          try {
-            const mtlLoader = new MTLLoader()
-            const materials = await mtlLoader.loadAsync(mtlUrl)
-            materials.preload()
-            objLoader.setMaterials(materials)
-          } catch (e) {
-            console.warn('MTL load failed:', e)
-          }
+        // ファイルをテキストとして取得してからパース
+        const response = await fetch(objUrl)
+        let objText = await response.text()
+
+        // CRLF/CR を LF に変換（OBJLoaderの互換性のため）
+        if (objText.includes('\r')) {
+          objText = objText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
         }
 
-        const loadedObj = await objLoader.loadAsync(objUrl)
+        // NURBS曲線データとポイント定義を除去（THREE.js OBJLoaderは未サポート）
+        // cstype, deg, curv, parm, end, surf, p(point) などの行を除去
+        const nurbsPattern = /^(cstype|deg|curv|parm|surf|trim|hole|scrv|sp|step|p)\b/
+        const endPattern = /^end\s*$/
+        const lines = objText.split('\n')
+        objText = lines.filter(line => {
+          const trimmed = line.trim()
+          return !nurbsPattern.test(trimmed) && !endPattern.test(trimmed)
+        }).join('\n')
 
+        const loadedObj = objLoader.parse(objText)
+
+        // frustumCulledを無効化してレンダリング時のNaNエラーを防ぐ
+        loadedObj.frustumCulled = false
         loadedObj.traverse((child) => {
+          child.frustumCulled = false
+
+          // Meshの処理
           if (child instanceof THREE.Mesh) {
             child.material = new THREE.MeshStandardMaterial({
               color: 0x888888,
@@ -53,14 +65,64 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
           }
         })
 
+        // Pointsオブジェクトを削除（NaNエラー防止）
+        const pointsToRemove: THREE.Points[] = []
+        loadedObj.traverse((child) => {
+          if (child instanceof THREE.Points) {
+            pointsToRemove.push(child)
+          }
+        })
+        pointsToRemove.forEach((points) => {
+          points.geometry?.dispose()
+          points.removeFromParent()
+        })
+
         loadedObj.updateMatrixWorld(true)
-        const box = new THREE.Box3().setFromObject(loadedObj)
-        const size = box.getSize(new THREE.Vector3())
+
+        // THREE.jsのconsole.errorを一時的に抑制（NaN警告を防ぐ）
+        const originalError = console.error
+        console.error = () => {}
+
+        let box: THREE.Box3
+        let size: THREE.Vector3
+        try {
+          box = new THREE.Box3().setFromObject(loadedObj)
+          size = box.getSize(new THREE.Vector3())
+        } finally {
+          console.error = originalError
+        }
+
+        // NaN値チェック - デフォルト値を使用
+        if (!isFinite(size.x) || !isFinite(size.y) || !isFinite(size.z)) {
+          console.warn('Bounding box has NaN values, using default size')
+          size = new THREE.Vector3(10000, 10000, 10000) // 10m default
+          box = new THREE.Box3(
+            new THREE.Vector3(-5000, -5000, -5000),
+            new THREE.Vector3(5000, 5000, 5000)
+          )
+        }
 
         // 建築系座標変換（Z-up → Y-up）
         loadedObj.rotation.x = -Math.PI / 2
         loadedObj.updateMatrixWorld(true)
-        const rotatedBox = new THREE.Box3().setFromObject(loadedObj)
+
+        // 回転後のバウンディングボックス
+        console.error = () => {}
+        let rotatedBox: THREE.Box3
+        try {
+          rotatedBox = new THREE.Box3().setFromObject(loadedObj)
+        } finally {
+          console.error = originalError
+        }
+
+        // NaN値チェック
+        if (!isFinite(rotatedBox.min.x) || !isFinite(rotatedBox.min.y) || !isFinite(rotatedBox.min.z)) {
+          console.warn('Rotated bounding box has NaN values, using default')
+          rotatedBox = new THREE.Box3(
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(size.x, size.y, size.z)
+          )
+        }
 
         // 原点（0,0,0）を基準に配置（配置座標と一致させるため）
         loadedObj.position.set(
@@ -70,7 +132,7 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
         )
 
         const maxDim = Math.max(size.x, size.y, size.z)
-        const distance = maxDim * 1.5
+        const distance = isFinite(maxDim) ? maxDim * 1.5 : 15000
 
         if (camera instanceof THREE.PerspectiveCamera) {
           camera.position.set(distance * 0.5, distance * 0.5, distance)
@@ -97,7 +159,6 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
     if (!isSelectingArea || !onPointClick) return
 
     const point = event.point
-    console.log('Clicked point:', point)
     onPointClick({ x: point.x, y: point.y, z: point.z })
   }, [isSelectingArea, onPointClick])
 
@@ -173,11 +234,17 @@ function ItemModel({ objData, mtlData, scale: modelScale }: { objData: string, m
         // スケール調整（m → Three.js単位）
         loadedObj.scale.set(modelScale, modelScale, modelScale)
 
-        // バウンディングボックスを取得して中心に配置
+        // バウンディングボックスを取得して中心に配置（console.errorを抑制）
         loadedObj.updateMatrixWorld(true)
-        const box = new THREE.Box3().setFromObject(loadedObj)
-        const center = box.getCenter(new THREE.Vector3())
-        loadedObj.position.sub(center)
+        const originalError = console.error
+        console.error = () => {}
+        try {
+          const box = new THREE.Box3().setFromObject(loadedObj)
+          const center = box.getCenter(new THREE.Vector3())
+          loadedObj.position.sub(center)
+        } finally {
+          console.error = originalError
+        }
 
         if (!cancelled) {
           setObj(loadedObj)
