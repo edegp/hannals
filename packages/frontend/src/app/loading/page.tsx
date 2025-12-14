@@ -287,7 +287,6 @@ export default function LoadingPage() {
               selectedItemId={selectedItemId}
               onItemSelect={setSelectedItemId}
               cargoArea={cargoArea}
-              entrancePoint={null}
               entranceDirection={entranceDirection}
               isSelectingEntrance={false}
               onEntranceClick={() => { }}

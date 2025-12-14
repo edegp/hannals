@@ -453,7 +453,7 @@ interface CargoViewerProps {
   selectedItemId: string | null
   onItemSelect: (id: string | null) => void
   cargoArea: CargoArea | null
-  entrancePoint?: ClickPoint | null
+  entrancePoint?: ClickPoint
   entranceDirection: string | null
   isSelectingEntrance: boolean
   onEntranceClick: (point: ClickPoint) => void

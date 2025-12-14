@@ -106,33 +106,36 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
           </div>
         ) : (
           trucks.map((truck) => (
-            <DropdownMenuItem
+            <div
               key={truck.id}
-              onClick={() => onSelect(truck)}
-              className="flex items-center justify-between py-3"
+              className="flex items-center justify-between py-2 px-2 hover:bg-accent rounded-sm"
             >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium">{truck.name}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  入り口: {getDirectionLabel(truck.entranceDirection)}
-                  {truck.maxX && truck.maxY && truck.maxZ && (
-                    <span className="ml-2">
-                      {((truck.maxX - (truck.minX ?? 0)) / 1000).toFixed(1)}m ×
-                      {((truck.maxY - (truck.minY ?? 0)) / 1000).toFixed(1)}m ×
-                      {((truck.maxZ - (truck.minZ ?? 0)) / 1000).toFixed(1)}m
-                    </span>
-                  )}
+              <DropdownMenuItem
+                onClick={() => onSelect(truck)}
+                className="flex-1 min-w-0 p-1"
+              >
+                <div>
+                  <div className="font-medium">{truck.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    入り口: {getDirectionLabel(truck.entranceDirection)}
+                    {truck.maxX && truck.maxY && truck.maxZ && (
+                      <span className="ml-2">
+                        {((truck.maxX - (truck.minX ?? 0)) / 1000).toFixed(1)}m ×
+                        {((truck.maxY - (truck.minY ?? 0)) / 1000).toFixed(1)}m ×
+                        {((truck.maxZ - (truck.minZ ?? 0)) / 1000).toFixed(1)}m
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
+              </DropdownMenuItem>
+              <button
+                type="button"
+                className="h-8 w-8 flex items-center justify-center text-destructive hover:bg-destructive/10 rounded-sm"
                 onClick={(e) => handleDelete(e, truck)}
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuItem>
+              </button>
+            </div>
           ))
         )}
       </DropdownMenuContent>

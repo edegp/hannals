@@ -337,19 +337,18 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
         {isOpen ? <X className="h-5 w-5" /> : <Package className="h-5 w-5" />}
       </Button>
 
-      {/* Mobile Sidebar */}
-      <div className={cn(
-        'lg:hidden fixed right-0 top-0 bottom-0 z-40 w-80 bg-card border-l border-border flex flex-col h-full overflow-hidden transform transition-transform duration-300',
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      )}>
-        {sidebarContent}
-      </div>
-
-      {/* Desktop Sidebar */}
-      <div className={cn(
-        'hidden lg:flex w-80 flex-shrink-0 bg-card border-l border-border flex-col h-full overflow-hidden',
-        !isOpen && 'lg:hidden'
-      )}>
+      {/* Responsive Sidebar */}
+      <div
+        className={cn(
+          'w-80 bg-card border-l border-border flex flex-col h-full overflow-hidden transition-transform duration-300',
+          // Mobile: fixed position with slide animation
+          'fixed right-0 top-0 bottom-0 z-40 transform',
+          isOpen ? 'translate-x-0' : 'translate-x-full',
+          // Desktop: static position, no transform
+          'lg:static lg:z-auto lg:transform-none lg:flex-shrink-0',
+          !isOpen && 'lg:hidden'
+        )}
+      >
         {sidebarContent}
       </div>
     </>
