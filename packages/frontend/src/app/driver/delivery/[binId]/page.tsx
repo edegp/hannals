@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef, use } from 'react'
 import { CargoViewer } from '@/components/CargoViewer'
 import { PlacedItem, CargoArea } from '@/types'
 
@@ -15,7 +15,8 @@ interface Stop {
   status: 'pending' | 'completed'
 }
 
-export default function DeliveryPage({ params }: { params: { binId: string } }) {
+export default function DeliveryPage({ params }: { params: Promise<{ binId: string }> }) {
+  const { binId } = use(params)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [cargoArea, setCargoArea] = useState<CargoArea | null>(null)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
@@ -23,6 +24,8 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
   const [stops, setStops] = useState<Stop[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [maxOrder, setMaxOrder] = useState(10)
+  const stopRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+  const isInitialLoadRef = useRef(true)
 
   // デモデータの読み込み
   useEffect(() => {
@@ -56,7 +59,8 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
         }))
 
         setStops(stopList)
-        setSelectedStop(1)
+        // orderの最小値（最初の配送先）を初期値として設定
+        setSelectedStop(uniqueStops.length > 0 ? uniqueStops[0] : 1)
       }
     } catch (error) {
       console.error('Failed to load delivery plan:', error)
@@ -76,28 +80,23 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
 
   // Stop完了処理
   const handleCompleteStop = () => {
-    if (selectedStop < stops.length) {
-      // 現在のStopを完了に更新
-      const updatedStops = stops.map(stop =>
-        stop.stopNumber === selectedStop
-          ? { ...stop, status: 'completed' as const }
-          : stop
-      )
-      setStops(updatedStops)
+    // 現在のStopを完了に更新
+    const updatedStops = stops.map(stop =>
+      stop.stopNumber === selectedStop
+        ? { ...stop, status: 'completed' as const }
+        : stop
+    )
+    setStops(updatedStops)
 
-      // 次のStopへ移動
-      const nextStop = selectedStop + 1
+    // order順で次のStopを見つける
+    const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
+    if (currentIndex >= 0 && currentIndex < stops.length - 1) {
+      // 次のStopへ移動（order順）
+      const nextStop = stops[currentIndex + 1].stopNumber
       setSelectedStop(nextStop)
       setSelectedItemId(null)
-    } else {
-      // 最後のStopを完了
-      const updatedStops = stops.map(stop =>
-        stop.stopNumber === selectedStop
-          ? { ...stop, status: 'completed' as const }
-          : stop
-      )
-      setStops(updatedStops)
     }
+    // 最後のStopの場合は何もしない（完了のみ）
   }
 
   // Stop選択処理
@@ -119,6 +118,56 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
   // すべて完了したか
   const isAllCompleted = completedStopsCount === stops.length
 
+  // Stop完了時に最初の未完了Stopへスクロール
+  useEffect(() => {
+    // 初回ロード時はスクロールしない
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false
+      return
+    }
+
+    // 最初の未完了のStopを見つける
+    const firstPendingStop = stops.find(stop => stop.status === 'pending')
+    
+    if (firstPendingStop) {
+      const stopElement = stopRefs.current[firstPendingStop.stopNumber]
+      
+      if (stopElement) {
+        // 状態更新後にスクロール
+        const timer = setTimeout(() => {
+          stopElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start', // 画面の上部に表示
+          })
+        }, 150)
+
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [completedStopsCount]) // 完了数が変わったときに実行
+
+  // 選択されたStopにスクロール（手動選択時）
+  useEffect(() => {
+    const stopElement = stopRefs.current[selectedStop]
+    
+    if (stopElement) {
+      // 少し遅延を入れて、状態更新後にスクロール
+      const timer = setTimeout(() => {
+        stopElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        })
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }
+  }, [selectedStop])
+
+  // 次のStop情報を計算
+  const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
+  const hasNextStop = currentIndex >= 0 && currentIndex < stops.length - 1
+  const nextStopNumber = hasNextStop ? stops[currentIndex + 1].stopNumber : null
+
   return (
     <div className="h-screen flex flex-col bg-gray-900">
       {/* ヘッダー */}
@@ -127,7 +176,7 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
           <div>
             <h1 className="text-2xl font-bold text-white">配送・取り出し支援（3D）</h1>
             <p className="text-sm text-gray-400 mt-1">
-              ドライバー向け - 便ID: {params.binId}
+              ドライバー向け - 便ID: {binId}
             </p>
           </div>
 
@@ -166,6 +215,13 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
               {stops.map((stop) => (
                 <button
                   key={stop.stopNumber}
+                  ref={(el) => {
+                    if (el) {
+                      stopRefs.current[stop.stopNumber] = el
+                    } else {
+                      delete stopRefs.current[stop.stopNumber]
+                    }
+                  }}
                   onClick={() => handleSelectStop(stop.stopNumber)}
                   disabled={stop.status === 'completed'}
                   className={`w-full text-left p-4 rounded-lg border transition-all ${selectedStop === stop.stopNumber
@@ -292,9 +348,9 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
                     : `Stop ${selectedStop} 完了`}
                 </button>
 
-                {selectedStop < stops.length && currentStop?.status !== 'completed' && (
+                {hasNextStop && currentStop?.status !== 'completed' && (
                   <span className="text-gray-400 text-sm">
-                    次へ進むと Stop {selectedStop + 1} に移動します
+                    次へ進むと Stop {nextStopNumber} に移動します
                   </span>
                 )}
               </div>
