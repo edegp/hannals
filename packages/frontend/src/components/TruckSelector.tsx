@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { Truck } from '@/types'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ChevronDown, Plus, Trash2, Truck as TruckIcon } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -14,7 +23,6 @@ interface TruckSelectorProps {
 export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelectorProps) {
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const fetchTrucks = async () => {
@@ -35,6 +43,7 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
 
   const handleDelete = async (e: React.MouseEvent, truck: Truck) => {
     e.stopPropagation()
+    e.preventDefault()
     if (!confirm(`「${truck.name}」を削除しますか？`)) return
 
     try {
@@ -61,88 +70,74 @@ export function TruckSelector({ selectedTruck, onSelect, onAddNew }: TruckSelect
 
   if (isLoading) {
     return (
-      <div className="text-gray-400 text-sm">読み込み中...</div>
+      <Button variant="outline" disabled>
+        <TruckIcon className="h-4 w-4 mr-2" />
+        読み込み中...
+      </Button>
     )
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 flex items-center gap-2"
-      >
-        <span>{selectedTruck ? selectedTruck.name : '荷台を選択'}</span>
-        <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="min-w-[160px] justify-between">
+          <span className="flex items-center gap-2">
+            <TruckIcon className="h-4 w-4" />
+            {selectedTruck ? selectedTruck.name : '荷台を選択'}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-80">
+        {onAddNew && (
+          <>
+            <DropdownMenuItem onClick={onAddNew} className="text-primary">
+              <Plus className="h-4 w-4 mr-2" />
+              新しい荷台を登録
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-80 bg-gray-800 border border-gray-600 rounded shadow-lg z-50">
-          {/* 新規追加ボタン */}
-          {onAddNew && (
-            <button
-              onClick={() => {
-                setIsOpen(false)
-                onAddNew()
-              }}
-              className="w-full px-4 py-3 text-left text-blue-400 hover:bg-gray-700 flex items-center gap-2 border-b border-gray-600"
+        {trucks.length === 0 ? (
+          <div className="px-2 py-3 text-sm text-muted-foreground">
+            登録された荷台がありません
+          </div>
+        ) : (
+          trucks.map((truck) => (
+            <div
+              key={truck.id}
+              className="flex items-center justify-between py-2 px-2 hover:bg-accent rounded-sm"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>新しい荷台を登録</span>
-            </button>
-          )}
-
-          {/* 荷台リスト */}
-          {trucks.length === 0 ? (
-            <div className="px-4 py-3 text-gray-400 text-sm">
-              登録された荷台がありません
-            </div>
-          ) : (
-            <div className="max-h-60 overflow-y-auto">
-              {trucks.map((truck) => (
-                <div
-                  key={truck.id}
-                  onClick={() => {
-                    onSelect(truck)
-                    setIsOpen(false)
-                  }}
-                  className={`px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center justify-between ${selectedTruck?.id === truck.id ? 'bg-gray-700' : ''}`}
-                >
-                  <div>
-                    <div className="text-white">{truck.name}</div>
-                    <div className="text-xs text-gray-400">
-                      入り口: {getDirectionLabel(truck.entranceDirection)}
-                      {truck.maxX && truck.maxY && truck.maxZ && (
-                        <span className="ml-2">
-                          {((truck.maxX - (truck.minX ?? 0)) / 1000).toFixed(1)}m x
-                          {((truck.maxY - (truck.minY ?? 0)) / 1000).toFixed(1)}m x
-                          {((truck.maxZ - (truck.minZ ?? 0)) / 1000).toFixed(1)}m
-                        </span>
-                      )}
-                    </div>
+              <DropdownMenuItem
+                onClick={() => onSelect(truck)}
+                className="flex-1 min-w-0 p-1"
+              >
+                <div>
+                  <div className="font-medium">{truck.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    入り口: {getDirectionLabel(truck.entranceDirection)}
+                    {truck.maxX && truck.maxY && truck.maxZ && (
+                      <span className="ml-2">
+                        {((truck.maxX - (truck.minX ?? 0)) / 1000).toFixed(1)}m ×
+                        {((truck.maxY - (truck.minY ?? 0)) / 1000).toFixed(1)}m ×
+                        {((truck.maxZ - (truck.minZ ?? 0)) / 1000).toFixed(1)}m
+                      </span>
+                    )}
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(e, truck)}
-                    className="text-red-400 hover:text-red-300 p-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
-              ))}
+              </DropdownMenuItem>
+              <button
+                type="button"
+                className="h-8 w-8 flex items-center justify-center text-destructive hover:bg-destructive/10 rounded-sm"
+                onClick={(e) => handleDelete(e, truck)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
