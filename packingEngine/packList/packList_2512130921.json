@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "A001",
+      "x_mm": 9500,
+      "y_mm": 9500,
+      "z_mm": 2000,
+      "order": 3,
+      "weight_kg": 12.5,
+      "fragile": false,
+      "rot_xy": true
+    },
+    {
+      "id": "B010",
+      "x_mm": 2005,
+      "y_mm": 1195,
+      "z_mm": 4800,
+      "order": 1,
+      "weight_kg": 5.2,
+      "fragile": true,
+      "rot_xy": false
+    }
+  ]
+}

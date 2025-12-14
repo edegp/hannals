@@ -1,0 +1,9 @@
+# Python cache
+__pycache__/
+
+# generated files
+baggage/
+packList/*
+!packList/packList_2512130921.json
+trunk/*
+voxels/
