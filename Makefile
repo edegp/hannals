@@ -50,7 +50,7 @@ deploy-setup:
 	ssh $(SSH_USER)@$(SERVER_IP) '\
 		cd /opt/hannals && \
 		pnpm install && \
-		cd packages/backend && npx prisma migrate deploy && npx prisma generate && \
+		cd packages/backend && npx prisma migrate deploy && npx prisma generate && pnpm db:seed && \
 		cd /opt/hannals && pnpm build && \
 		sudo systemctl restart hannals-backend hannals-frontend'
 

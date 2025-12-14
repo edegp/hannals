@@ -39,7 +39,7 @@ function ItemPreview({ item }: { item: PlacedItem }) {
   )
 }
 
-export function ItemsSidebar({ items, completedItems = [], selectedItemId, onItemSelect, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
+export function ItemsSidebar({ items, completedItems = [], selectedItemId, highlightedItemId, onItemSelect, isOpen = true, onToggle, mode, onStatusChange, onStatusUndo }: ItemsSidebarProps) {
   const allItems = [...items, ...completedItems]
   const selectedItem = allItems.find(item => item.id === selectedItemId)
   const getItemOrder = (item: PlacedItem) => (mode === 'delivery' ? item.order : (item.loadOrder ?? item.order))
@@ -226,14 +226,15 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, onIte
               <Card
                 className={cn(
                   'cursor-pointer transition-colors hover:bg-accent',
-                  item.id === selectedItemId && 'ring-2 ring-primary'
+                  item.id === selectedItemId && 'ring-2 ring-primary',
+                  item.id === highlightedItemId && 'ring-2 ring-yellow-400 bg-yellow-50 dark:bg-yellow-950'
                 )}
                 onClick={() => onItemSelect(item.id)}
               >
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium truncate">{item.name || item.id}</span>
-                    <Badge variant="outline" className="ml-2">
+                    <Badge variant={item.id === highlightedItemId ? 'default' : 'outline'} className={cn('ml-2', item.id === highlightedItemId && 'bg-yellow-400 text-yellow-900')}>
                       #{getItemOrder(item)}
                     </Badge>
                   </div>
