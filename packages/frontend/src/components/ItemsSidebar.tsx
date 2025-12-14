@@ -15,6 +15,7 @@ interface ItemsSidebarProps {
   items: PlacedItem[]
   completedItems?: PlacedItem[]
   selectedItemId: string | null
+  highlightedItemId?: string | null
   onItemSelect: (id: string | null) => void
   isOpen?: boolean
   onToggle?: () => void

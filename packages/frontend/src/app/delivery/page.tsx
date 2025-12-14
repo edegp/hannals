@@ -273,6 +273,7 @@ export default function DeliveryPage() {
               mtlUrl={mtlUrl}
               placedItems={pendingDeliveryItems}
               selectedItemId={selectedItemId}
+              highlightedItemId={pendingDeliveryItems[0]?.id}
               onItemSelect={setSelectedItemId}
               cargoArea={cargoArea}
               entranceDirection={entranceDirection}
