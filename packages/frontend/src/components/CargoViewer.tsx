@@ -48,7 +48,7 @@ function CargoModel({ objUrl, mtlUrl, onPointClick, isSelectingArea }: CargoMode
               side: THREE.DoubleSide,
               transparent: true,
               opacity: 0.3,
-              depthWrite: false,
+              depthWrite: true,
             })
           }
         })
@@ -347,7 +347,6 @@ function EntranceIndicator({ cargoArea, entranceDirection }: EntranceIndicatorPr
   const height = (cargoArea.maxZ - cargoArea.minZ) * scale
   const centerX = (cargoArea.minX + cargoArea.maxX) / 2 * scale
   const centerY = (cargoArea.minY + cargoArea.maxY) / 2 * scale
-  const centerZ = (cargoArea.minZ + cargoArea.maxZ) / 2 * scale
 
   // 入口の位置と矢印の方向を計算
   let entrancePos: [number, number, number] = [0, 0, 0]
@@ -422,26 +421,15 @@ function EntranceIndicator({ cargoArea, entranceDirection }: EntranceIndicatorPr
         ]}
         center
         distanceFactor={8}
+        occlude
+        style={{ pointerEvents: 'none' }}
       >
-        <div className="bg-green-600 text-white text-sm px-2 py-1 rounded font-bold whitespace-nowrap shadow-lg">
+        <div className="bg-green-600/80 text-white text-sm px-2 py-1 rounded font-bold whitespace-nowrap shadow-lg">
           入口 ↓
         </div>
       </Html>
 
-      {/* 奥側ラベル */}
-      <Html
-        position={[
-          entranceDirection === 'front' ? centerX : entranceDirection === 'back' ? centerX : entranceDirection === 'left' ? cargoArea.maxX * scale : cargoArea.minX * scale,
-          height * 0.8,
-          entranceDirection === 'front' ? cargoArea.minY * scale : entranceDirection === 'back' ? cargoArea.maxY * scale : centerY
-        ]}
-        center
-        distanceFactor={8}
-      >
-        <div className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded whitespace-nowrap">
-          奥
-        </div>
-      </Html>
+      {/* 奥側ラベルは削除 - 入口だけで十分 */}
     </group>
   )
 }

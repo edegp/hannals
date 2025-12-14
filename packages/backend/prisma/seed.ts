@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { writeFileSync, mkdirSync, existsSync, copyFileSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import path from 'path'
 
 const prisma = new PrismaClient()
@@ -11,14 +11,6 @@ const TRUCK_2T = {
   width: 2000,   // X: 幅
   depth: 4400,   // Y: 奥行き
   height: 2000,  // Z: 高さ
-}
-
-// サンプルのボクセルトラック
-const SAMPLE_VOXEL_TRUCK = {
-  name: 'ボクセルトラック（テスト）',
-  // sample/objからコピー
-  srcObjPath: path.join(process.cwd(), '..', '..', 'sample', 'obj', 'trunkVoxel_2512131543.obj'),
-  srcMtlPath: path.join(process.cwd(), '..', '..', 'sample', 'obj', 'trunkVoxel_2512131543.mtl'),
 }
 
 /**
@@ -81,73 +73,32 @@ async function main() {
   writeFileSync(objFilePath, objContent)
   console.log(`Created OBJ file: ${objFilePath}`)
 
-  // 既存の2tトラックを削除
-  await prisma.truck.deleteMany({
+  // 既存の2tトラックをチェック
+  const existingTruck = await prisma.truck.findFirst({
     where: { name: TRUCK_2T.name }
   })
 
-  // 2tトラックをDBに登録
-  const truck = await prisma.truck.create({
-    data: {
-      name: TRUCK_2T.name,
-      objFilePath: `uploads/${objFileName}`,
-      entranceDirection: 'back',
-      minX: 0,
-      minY: 0,
-      minZ: 0,
-      maxX: TRUCK_2T.width,
-      maxY: TRUCK_2T.depth,
-      maxZ: TRUCK_2T.height,
-    }
-  })
-
-  console.log(`Created truck: ${truck.name} (${truck.id})`)
-  console.log(`  Dimensions: ${TRUCK_2T.width}mm x ${TRUCK_2T.depth}mm x ${TRUCK_2T.height}mm`)
-  console.log(`  Volume: ${(TRUCK_2T.width * TRUCK_2T.depth * TRUCK_2T.height / 1e9).toFixed(2)} m³`)
-
-  // サンプルのボクセルトラックを追加
-  if (existsSync(SAMPLE_VOXEL_TRUCK.srcObjPath)) {
-    const voxelObjFileName = 'trunkVoxel_sample.obj'
-    const voxelMtlFileName = 'trunkVoxel_sample.mtl'
-    const voxelObjFilePath = path.join(uploadsDir, voxelObjFileName)
-    const voxelMtlFilePath = path.join(uploadsDir, voxelMtlFileName)
-
-    // ファイルをコピー
-    copyFileSync(SAMPLE_VOXEL_TRUCK.srcObjPath, voxelObjFilePath)
-    console.log(`Copied OBJ file: ${voxelObjFilePath}`)
-
-    if (existsSync(SAMPLE_VOXEL_TRUCK.srcMtlPath)) {
-      copyFileSync(SAMPLE_VOXEL_TRUCK.srcMtlPath, voxelMtlFilePath)
-      console.log(`Copied MTL file: ${voxelMtlFilePath}`)
-    }
-
-    // 既存のボクセルトラックを削除
-    await prisma.truck.deleteMany({
-      where: { name: SAMPLE_VOXEL_TRUCK.name }
-    })
-
-    // ボクセルトラックをDBに登録
-    // 注: サイズは仮の値（実際のOBJから自動検出されるべき）
-    const voxelTruck = await prisma.truck.create({
+  if (existingTruck) {
+    console.log(`Truck already exists: ${existingTruck.name} (${existingTruck.id}) - skipping`)
+  } else {
+    // 2tトラックをDBに登録
+    const truck = await prisma.truck.create({
       data: {
-        name: SAMPLE_VOXEL_TRUCK.name,
-        objFilePath: `uploads/${voxelObjFileName}`,
-        mtlFilePath: `uploads/${voxelMtlFileName}`,
+        name: TRUCK_2T.name,
+        objFilePath: `uploads/${objFileName}`,
         entranceDirection: 'back',
-        // サンプルOBJのバウンディングボックス（事前に計算済み）
-        // X: -19186.9 to 13813.1, Y: -15597.9 to 9402.1, Z: 0 to 11354.6
-        minX: -19186.9,
-        minY: -15597.9,
+        minX: 0,
+        minY: 0,
         minZ: 0,
-        maxX: 13813.1,
-        maxY: 9402.1,
-        maxZ: 11354.6,
+        maxX: TRUCK_2T.width,
+        maxY: TRUCK_2T.depth,
+        maxZ: TRUCK_2T.height,
       }
     })
 
-    console.log(`Created voxel truck: ${voxelTruck.name} (${voxelTruck.id})`)
-  } else {
-    console.log('Sample voxel truck OBJ not found, skipping...')
+    console.log(`Created truck: ${truck.name} (${truck.id})`)
+    console.log(`  Dimensions: ${TRUCK_2T.width}mm x ${TRUCK_2T.depth}mm x ${TRUCK_2T.height}mm`)
+    console.log(`  Volume: ${(TRUCK_2T.width * TRUCK_2T.depth * TRUCK_2T.height / 1e9).toFixed(2)} m³`)
   }
 
   console.log('Seeding completed!')

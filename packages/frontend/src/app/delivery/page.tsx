@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { CargoViewer } from '@/components/CargoViewer'
 import { ItemsSidebar } from '@/components/ItemsSidebar'
 import { TruckSelector } from '@/components/TruckSelector'
+import { TruckUploader } from '@/components/TruckUploader'
 import { PlacedItem, CargoArea, Truck } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -22,6 +23,7 @@ export default function DeliveryPage() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [entranceDirection, setEntranceDirection] = useState<EntranceDirection>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showTruckUploader, setShowTruckUploader] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const objUrl = selectedTruck ? `${API_URL}/api/trucks/${selectedTruck.id}/obj` : undefined
@@ -204,6 +206,7 @@ export default function DeliveryPage() {
               <TruckSelector
                 selectedTruck={selectedTruck}
                 onSelect={handleTruckSelect}
+                onAddNew={() => setShowTruckUploader(true)}
               />
 
               {/* Navigation */}
@@ -294,6 +297,17 @@ export default function DeliveryPage() {
           mode="delivery"
           onStatusChange={handleMarkDelivered}
           onStatusUndo={handleUndeliver}
+        />
+      )}
+
+      {/* Truck Upload Modal */}
+      {showTruckUploader && (
+        <TruckUploader
+          onUpload={(truck) => {
+            handleTruckSelect(truck)
+            setShowTruckUploader(false)
+          }}
+          onCancel={() => setShowTruckUploader(false)}
         />
       )}
     </div>
