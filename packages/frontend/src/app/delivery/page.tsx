@@ -292,6 +292,7 @@ export default function DeliveryPage() {
           items={pendingDeliveryItems}
           completedItems={deliveredItems}
           selectedItemId={selectedItemId}
+          highlightedItemId={pendingDeliveryItems[0]?.id}
           onItemSelect={setSelectedItemId}
           isOpen={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}

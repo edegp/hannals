@@ -232,6 +232,13 @@ export function ItemsSidebar({ items, completedItems = [], selectedItemId, highl
                 onClick={() => onItemSelect(item.id)}
               >
                 <CardContent className="p-3">
+                  {item.id === highlightedItemId && (
+                    <div className="mb-2">
+                      <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500">
+                        配達中
+                      </Badge>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="font-medium truncate">{item.name || item.id}</span>
                     <Badge variant={item.id === highlightedItemId ? 'default' : 'outline'} className={cn('ml-2', item.id === highlightedItemId && 'bg-yellow-400 text-yellow-900')}>
