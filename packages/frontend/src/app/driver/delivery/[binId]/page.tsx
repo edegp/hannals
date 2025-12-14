@@ -25,7 +25,7 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
   const [isLoading, setIsLoading] = useState(false)
   const [maxOrder, setMaxOrder] = useState(10)
   const stopRefs = useRef<Record<number, HTMLButtonElement | null>>({})
-  const sidebarRef = useRef<HTMLDivElement | null>(null)
+  const isInitialLoadRef = useRef(true)
 
   // デモデータの読み込み
   useEffect(() => {
@@ -120,6 +120,12 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
 
   // Stop完了時に最初の未完了Stopへスクロール
   useEffect(() => {
+    // 初回ロード時はスクロールしない
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false
+      return
+    }
+
     // 最初の未完了のStopを見つける
     const firstPendingStop = stops.find(stop => stop.status === 'pending')
     
@@ -128,15 +134,17 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
       
       if (stopElement) {
         // 状態更新後にスクロール
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           stopElement.scrollIntoView({
             behavior: 'smooth',
             block: 'start', // 画面の上部に表示
           })
         }, 150)
+
+        return () => clearTimeout(timer)
       }
     }
-  }, [completedStopsCount, stops]) // 完了数が変わったときに実行
+  }, [completedStopsCount]) // 完了数が変わったときに実行
 
   // 選択されたStopにスクロール（手動選択時）
   useEffect(() => {
@@ -144,14 +152,21 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
     
     if (stopElement) {
       // 少し遅延を入れて、状態更新後にスクロール
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         stopElement.scrollIntoView({
           behavior: 'smooth',
           block: 'nearest',
         })
       }, 100)
+
+      return () => clearTimeout(timer)
     }
   }, [selectedStop])
+
+  // 次のStop情報を計算
+  const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
+  const hasNextStop = currentIndex >= 0 && currentIndex < stops.length - 1
+  const nextStopNumber = hasNextStop ? stops[currentIndex + 1].stopNumber : null
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
@@ -192,7 +207,7 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
       {/* メインコンテンツ */}
       <div className="flex-1 flex overflow-hidden">
         {/* 左サイドバー: Stop一覧 */}
-        <div ref={sidebarRef} className="w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+        <div className="w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-white mb-4">配送先一覧</h2>
 
@@ -201,7 +216,11 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
                 <button
                   key={stop.stopNumber}
                   ref={(el) => {
-                    stopRefs.current[stop.stopNumber] = el
+                    if (el) {
+                      stopRefs.current[stop.stopNumber] = el
+                    } else {
+                      delete stopRefs.current[stop.stopNumber]
+                    }
                   }}
                   onClick={() => handleSelectStop(stop.stopNumber)}
                   disabled={stop.status === 'completed'}
@@ -331,16 +350,11 @@ export default function DeliveryPage({ params }: { params: Promise<{ binId: stri
                     : `Stop ${selectedStop} 完了`}
                 </button>
 
-                {(() => {
-                  const currentIndex = stops.findIndex(s => s.stopNumber === selectedStop)
-                  const hasNextStop = currentIndex >= 0 && currentIndex < stops.length - 1
-                  const nextStopNumber = hasNextStop ? stops[currentIndex + 1].stopNumber : null
-                  return hasNextStop && currentStop?.status !== 'completed' && (
-                    <span className="text-gray-400 text-sm">
-                      次へ進むと Stop {nextStopNumber} に移動します
-                    </span>
-                  )
-                })()}
+                {hasNextStop && currentStop?.status !== 'completed' && (
+                  <span className="text-gray-400 text-sm">
+                    次へ進むと Stop {nextStopNumber} に移動します
+                  </span>
+                )}
               </div>
             ) : (
               <div className="text-center">
