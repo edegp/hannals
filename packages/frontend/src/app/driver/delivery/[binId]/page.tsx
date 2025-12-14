@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef, use } from 'react'
 import { CargoViewer } from '@/components/CargoViewer'
 import { PlacedItem, CargoArea } from '@/types'
 
@@ -15,7 +15,8 @@ interface Stop {
   status: 'pending' | 'completed'
 }
 
-export default function DeliveryPage({ params }: { params: { binId: string } }) {
+export default function DeliveryPage({ params }: { params: Promise<{ binId: string }> }) {
+  const { binId } = use(params)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [cargoArea, setCargoArea] = useState<CargoArea | null>(null)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
@@ -23,6 +24,8 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
   const [stops, setStops] = useState<Stop[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [maxOrder, setMaxOrder] = useState(10)
+  const stopRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+  const sidebarRef = useRef<HTMLDivElement | null>(null)
 
   // デモデータの読み込み
   useEffect(() => {
@@ -115,6 +118,41 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
   // すべて完了したか
   const isAllCompleted = completedStopsCount === stops.length
 
+  // Stop完了時に最初の未完了Stopへスクロール
+  useEffect(() => {
+    // 最初の未完了のStopを見つける
+    const firstPendingStop = stops.find(stop => stop.status === 'pending')
+    
+    if (firstPendingStop) {
+      const stopElement = stopRefs.current[firstPendingStop.stopNumber]
+      
+      if (stopElement) {
+        // 状態更新後にスクロール
+        setTimeout(() => {
+          stopElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start', // 画面の上部に表示
+          })
+        }, 150)
+      }
+    }
+  }, [completedStopsCount, stops]) // 完了数が変わったときに実行
+
+  // 選択されたStopにスクロール（手動選択時）
+  useEffect(() => {
+    const stopElement = stopRefs.current[selectedStop]
+    
+    if (stopElement) {
+      // 少し遅延を入れて、状態更新後にスクロール
+      setTimeout(() => {
+        stopElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        })
+      }, 100)
+    }
+  }, [selectedStop])
+
   return (
     <div className="h-screen flex flex-col bg-gray-900">
       {/* ヘッダー */}
@@ -123,7 +161,7 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
           <div>
             <h1 className="text-2xl font-bold text-white">配送・取り出し支援（3D）</h1>
             <p className="text-sm text-gray-400 mt-1">
-              ドライバー向け - 便ID: {params.binId}
+              ドライバー向け - 便ID: {binId}
             </p>
           </div>
 
@@ -154,7 +192,7 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
       {/* メインコンテンツ */}
       <div className="flex-1 flex overflow-hidden">
         {/* 左サイドバー: Stop一覧 */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+        <div ref={sidebarRef} className="w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
           <div className="p-4">
             <h2 className="text-lg font-semibold text-white mb-4">配送先一覧</h2>
 
@@ -162,6 +200,9 @@ export default function DeliveryPage({ params }: { params: { binId: string } }) 
               {stops.map((stop) => (
                 <button
                   key={stop.stopNumber}
+                  ref={(el) => {
+                    stopRefs.current[stop.stopNumber] = el
+                  }}
                   onClick={() => handleSelectStop(stop.stopNumber)}
                   disabled={stop.status === 'completed'}
                   className={`w-full text-left p-4 rounded-lg border transition-all ${selectedStop === stop.stopNumber
